@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Layout utilities */
+  .container-clean {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .section-padding {
+    @apply py-20 px-4;
+  }
+
+  /* Enhanced gradient backgrounds */
+  .gradient-bg {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .gradient-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+    z-index: 1;
+  }
+  
+  .gradient-bg > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Enhanced hero section */
+  .hero-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+  }
+  
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Modern card styles */
+  .modern-card {
+    @apply rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .modern-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+  
+  .modern-card:hover {
+    @apply shadow-lg;
+    transform: translateY(-2px);
+  }
+  
+  .modern-card:hover::before {
+    transform: scaleX(1);
+  }
+
+  /* Feature card specific styles */
+  .feature-card {
+    @apply text-center transition-all duration-300;
+  }
+
+  /* Enhanced button styles */
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300;
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+    @apply shadow-lg hover:shadow-xl;
+    @apply transform hover:scale-105 active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300;
+    @apply border border-gray-300 bg-white hover:bg-gray-50 hover:text-gray-900;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+    @apply shadow-md hover:shadow-lg;
+    @apply transform hover:scale-105 active:scale-95;
+  }
+
+  /* Enhanced navigation */
+  .nav-link {
+    @apply inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200;
+    @apply border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700;
+  }
+  
+  .nav-link.active {
+    @apply border-blue-500 text-gray-900;
+  }
+
+  /* Feature icon containers */
+  .feature-icon {
+    @apply mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .modern-card:hover .feature-icon {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+    transform: scale(1.1);
+  }
+
+  /* Statistics section */
+  .stat-item {
+    @apply text-center transition-all duration-300 hover:scale-105;
+  }
+  
+  .stat-number {
+    @apply text-4xl font-bold text-blue-600 mb-2;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Loading animations */
+  .fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .slide-up {
+    animation: slideUp 0.8s ease-out;
+  }
+  
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+} 
