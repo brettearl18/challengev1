@@ -7,6 +7,7 @@ import { Button } from '@/src/components/ui/Button'
 import { Trophy, Medal, Users, Calendar, TrendingUp, Award, Clock, Target, Star, Crown, ArrowLeft, BarChart3, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { getChallengeLeaderboard, LeaderboardParticipant } from '@/src/lib/leaderboard.service'
+import { Challenge } from '@/src/types'
 
 
 

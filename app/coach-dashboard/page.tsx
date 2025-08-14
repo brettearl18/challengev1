@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/Card'
 import { Button } from '@/src/components/ui/Button'
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+import { collection, query, where, getDocs, orderBy, limit, doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/src/lib/firebase.client'
 import { Challenge, Enrolment } from '@/src/types'
 import { useAuth } from '@/src/lib/auth'
@@ -17,15 +17,18 @@ import {
   Trophy,
   Activity,
   BarChart3,
-  Award
+  Award,
+  Zap
 } from 'lucide-react'
 
 export default function CoachDashboardPage() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
   const [challenges, setChallenges] = useState<Challenge[]>([])
+  const [archivedChallenges, setArchivedChallenges] = useState<Challenge[]>([])
   const [enrolments, setEnrolments] = useState<Enrolment[]>([])
   const [loading, setLoading] = useState(true)
+  const [showArchived, setShowArchived] = useState(false)
 
   // Redirect if not authenticated or not coach
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function CoachDashboardPage() {
     try {
       setLoading(true)
       
-      // For now, fetch all challenges (in a real app, this would be filtered by coach)
+      // Fetch all challenges and separate active from archived
       const challengesQuery = query(
         collection(db, 'challenges'),
         orderBy('createdAt', 'desc')
@@ -57,7 +60,12 @@ export default function CoachDashboardPage() {
         ...doc.data()
       })) as Challenge[]
       
-      setChallenges(challengesData)
+      // Separate active and archived challenges
+      const activeChallenges = challengesData.filter(challenge => challenge.status !== 'archived')
+      const archivedChallengesData = challengesData.filter(challenge => challenge.status === 'archived')
+      
+      setChallenges(activeChallenges)
+      setArchivedChallenges(archivedChallengesData)
 
       // Fetch enrolments for these challenges
       const enrolmentsQuery = query(
@@ -130,6 +138,25 @@ export default function CoachDashboardPage() {
     const challenge = challenges.find(c => c.id === e.challengeId)
     return sum + (challenge?.priceCents || 0)
   }, 0)
+
+  // Handle unarchiving a challenge
+  const handleUnarchiveChallenge = async (challengeId: string) => {
+    try {
+      const challengeRef = doc(db, 'challenges', challengeId)
+      await updateDoc(challengeRef, {
+        status: 'draft',
+        updatedAt: Date.now()
+      })
+      
+      // Refresh the data
+      await fetchCoachData()
+      
+      alert('Challenge unarchived successfully! It is now in draft status.')
+    } catch (error) {
+      console.error('Error unarchiving challenge:', error)
+      alert('Failed to unarchive challenge')
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -206,40 +233,40 @@ export default function CoachDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-white/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <Plus className="w-8 h-8 text-green-600" />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-12">
+          <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-white/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <Plus className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Create Challenge</h3>
-                  <p className="text-gray-600">Start a new fitness challenge</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Create Challenge</h3>
+                  <p className="text-sm text-gray-600">Basic challenge builder</p>
                 </div>
               </div>
             </div>
             <Link href="/create-challenge">
-              <Button className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+              <Button className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-sm">
                 Create Challenge
               </Button>
             </Link>
           </div>
 
-          <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-white/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                  <Award className="w-8 h-8 text-purple-600" />
+          <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-white/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <Award className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Browse Templates</h3>
-                  <p className="text-gray-600">Find professional challenge templates</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Browse Templates</h3>
+                  <p className="text-sm text-gray-600">Find professional templates</p>
                 </div>
               </div>
             </div>
             <Link href="/templates">
-              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-sm">
                 Browse Templates
               </Button>
             </Link>
@@ -263,6 +290,25 @@ export default function CoachDashboardPage() {
               </Button>
             </Link>
           </div>
+
+          <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-white/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <Zap className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Enhanced Wizard</h3>
+                  <p className="text-sm text-gray-600">Professional builder</p>
+                </div>
+              </div>
+            </div>
+            <Link href="/enhanced-create-challenge">
+              <Button className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-sm">
+                Try Enhanced
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Recent Challenges */}
@@ -273,8 +319,8 @@ export default function CoachDashboardPage() {
                 <Target className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Your Challenges</h3>
-                <p className="text-gray-600">Manage and monitor your fitness challenges</p>
+                <h3 className="text-xl font-bold text-gray-900">Active Challenges</h3>
+                <p className="text-gray-600">Manage and monitor your active fitness challenges</p>
               </div>
             </div>
             
@@ -361,13 +407,151 @@ export default function CoachDashboardPage() {
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Target className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No challenges yet</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No active challenges</h3>
                 <p className="text-gray-500 mb-6">Create your first fitness challenge to get started!</p>
                 <Link href="/create-challenge">
                   <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
                     Create First Challenge
                   </Button>
                 </Link>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Archived Challenges */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden mb-12">
+          <div className="bg-gradient-to-r from-gray-50 to-slate-100 p-6 border-b border-gray-100/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
+                  <Target className="w-5 h-5 text-gray-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Archived Challenges</h3>
+                  <p className="text-gray-600">
+                    {archivedChallenges.length > 0 
+                      ? `${archivedChallenges.length} archived challenge${archivedChallenges.length === 1 ? '' : 's'}`
+                      : 'View and manage your archived challenges'
+                    }
+                  </p>
+                </div>
+              </div>
+              {archivedChallenges.length > 0 && (
+                <Button
+                  onClick={() => setShowArchived(!showArchived)}
+                  variant="outline"
+                  className="bg-white/80 backdrop-blur-sm border-gray-300 hover:bg-gray-50"
+                >
+                  {showArchived ? 'Hide' : 'Show'} Archived
+                </Button>
+              )}
+            </div>
+          </div>
+          
+          <div className="p-6">
+            {archivedChallenges.length > 0 ? (
+              <>
+                {!showArchived && (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Target className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">
+                      {archivedChallenges.length} Archived Challenge{archivedChallenges.length === 1 ? '' : 's'}
+                    </h3>
+                    <p className="text-gray-500 mb-6">
+                      Click "Show Archived" above to view and manage your archived challenges.
+                    </p>
+                    <Button
+                      onClick={() => setShowArchived(true)}
+                      variant="outline"
+                      className="bg-gray-100 border-gray-300 hover:bg-gray-200"
+                    >
+                      Show Archived Challenges
+                    </Button>
+                  </div>
+                )}
+                
+                {showArchived && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-semibold text-gray-700">
+                        Showing {archivedChallenges.length} archived challenge{archivedChallenges.length === 1 ? '' : 's'}
+                      </h4>
+                      <Button
+                        onClick={() => setShowArchived(false)}
+                        variant="outline"
+                        size="sm"
+                        className="bg-gray-100 border-gray-300 hover:bg-gray-200"
+                      >
+                        Hide Archived
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {archivedChallenges.map((challenge) => (
+                        <div
+                          key={challenge.id}
+                          className="group bg-gradient-to-r from-gray-50 to-slate-100/50 p-6 rounded-2xl border border-gray-200/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h4 className="font-bold text-gray-700 mb-2">{challenge.name}</h4>
+                              <p className="text-sm text-gray-500 mb-3">
+                                {challenge.description || 'No description available'}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-gray-700">{challenge.currentParticipants || 0}</div>
+                              <div className="text-xs text-gray-500">Participants</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-gray-700">${(challenge.priceCents / 100).toFixed(2)}</div>
+                              <div className="text-xs text-gray-500">Price</div>
+                            </div>
+                          </div>
+                          
+                          {/* Archive Status */}
+                          <div className="mb-4">
+                            <div className="flex items-center gap-2 p-2 bg-gray-100 border border-gray-300 rounded-lg">
+                              <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                              <span className="text-xs text-gray-600 font-medium">
+                                Archived - {challenge.currentParticipants || 0} participant{challenge.currentParticipants === 1 ? '' : 's'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Link
+                              href={`/challenge-settings/${challenge.id}`}
+                              className="flex-1 bg-gradient-to-r from-gray-600 to-slate-700 text-white py-2 px-4 rounded-lg text-sm font-medium text-center hover:from-gray-700 hover:to-slate-800 transition-all duration-200"
+                            >
+                              Settings
+                            </Link>
+                            <Button
+                              onClick={() => handleUnarchiveChallenge(challenge.id)}
+                              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                            >
+                              Unarchive
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Target className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">No archived challenges</h3>
+                <p className="text-gray-500 mb-6">Challenges you archive will appear here for easy access and management.</p>
               </div>
             )}
           </div>

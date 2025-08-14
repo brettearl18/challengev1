@@ -284,7 +284,7 @@ export default function InviteLandingPage() {
                       </div>
                       <div className="flex justify-between">
                         <span>Steps (10k+)</span>
-                        <span className="font-medium">{challenge.scoring.stepsPoints} pts</span>
+                        <span className="font-medium">+{challenge.scoring.stepsBuckets?.[0] || 5000} pts</span>
                       </div>
                     </div>
                   </div>

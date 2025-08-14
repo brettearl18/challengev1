@@ -35,13 +35,15 @@ const mockTemplates: ChallengeTemplate[] = [
     name: '30-Day Fitness Transformation',
     description: 'A comprehensive 30-day program designed to kickstart your fitness journey with progressive workouts, nutrition guidance, and habit building.',
     challengeType: 'fitness',
+    challengeTypes: ['fitness'],
+    gender: 'all',
     durationDays: 30,
     scoring: {
       checkinPoints: 10,
       workoutPoints: 5,
       nutritionPoints: 3,
       stepsBuckets: [5000, 8000, 10000, 15000],
-      stepsPoints: 2,
+
       weightLossPoints: 10,
       consistencyBonus: 5,
       streakMultiplier: 1.1
@@ -60,9 +62,12 @@ const mockTemplates: ChallengeTemplate[] = [
         bodyMeasurements: true,
         activityLevel: true,
         skillLevel: true
-      }
+      },
+      timeCommitment: 'medium',
+      location: 'anywhere',
+      groupSize: 'individual'
     },
-    tags: ['beginner-friendly', 'weight-loss', 'muscle-building'],
+    tags: ['beginner', 'weight-loss', 'muscle-gain'],
     isPublic: true,
     createdBy: 'system',
     createdAt: Date.now() - 86400000 * 30,
@@ -82,7 +87,8 @@ const mockTemplates: ChallengeTemplate[] = [
         averageParticipantSatisfaction: 4.6,
         averageResults: '7.2 lbs weight loss',
         totalChallengesCreated: 1250
-      }
+      },
+      licensing: { type: 'free', terms: 'Free for personal and commercial use', attributionRequired: false, modificationAllowed: true, commercialUse: true }
     },
     content: {
       overview: 'Transform your fitness in just 30 days with this comprehensive program.',
@@ -103,13 +109,6 @@ const mockTemplates: ChallengeTemplate[] = [
         checkpoints: []
       }
     },
-    licensing: {
-      type: 'free',
-      terms: 'Free for personal and commercial use',
-      attributionRequired: false,
-      modificationAllowed: true,
-      commercialUse: true
-    },
     creator: {
       name: 'Fitness Challenge Team',
       bio: 'Expert fitness professionals with years of experience in program design',
@@ -122,13 +121,15 @@ const mockTemplates: ChallengeTemplate[] = [
     name: '12-Week Strength Mastery',
     description: 'Advanced strength training program designed to build maximum muscle mass and strength through progressive overload principles.',
     challengeType: 'strength',
+    challengeTypes: ['strength'],
+    gender: 'all',
     durationDays: 84,
     scoring: {
       checkinPoints: 15,
       workoutPoints: 8,
       nutritionPoints: 5,
       stepsBuckets: [5000, 8000, 10000, 15000],
-      stepsPoints: 3,
+
       weightLossPoints: 15,
       consistencyBonus: 10,
       streakMultiplier: 1.2
@@ -147,9 +148,12 @@ const mockTemplates: ChallengeTemplate[] = [
         bodyMeasurements: true,
         activityLevel: true,
         skillLevel: true
-      }
+      },
+      timeCommitment: 'high',
+      location: 'gym',
+      groupSize: 'individual'
     },
-    tags: ['advanced', 'strength-training', 'muscle-building', 'progressive-overload'],
+    tags: ['advanced', 'strength', 'muscle-gain', 'performance'],
     isPublic: true,
     createdBy: 'expert-coach',
     createdAt: Date.now() - 86400000 * 60,
@@ -169,7 +173,8 @@ const mockTemplates: ChallengeTemplate[] = [
         averageParticipantSatisfaction: 4.8,
         averageResults: '18.5 lbs muscle gain',
         totalChallengesCreated: 450
-      }
+      },
+      licensing: { type: 'single-use', terms: 'Single use license for one challenge', attributionRequired: true, modificationAllowed: true, commercialUse: true }
     },
     content: {
       overview: 'Master strength training with this comprehensive 12-week program.',
@@ -190,13 +195,6 @@ const mockTemplates: ChallengeTemplate[] = [
         checkpoints: []
       }
     },
-    licensing: {
-      type: 'single-use',
-      terms: 'Single use license for one challenge',
-      attributionRequired: true,
-      modificationAllowed: true,
-      commercialUse: true
-    },
     creator: {
       name: 'Coach Mike Johnson',
       bio: 'Former powerlifting champion and certified strength coach with 15+ years experience',
@@ -215,13 +213,15 @@ const mockTemplates: ChallengeTemplate[] = [
     name: '8-Week Wellness Reset',
     description: 'Holistic wellness program focusing on mental health, stress management, and sustainable lifestyle changes.',
     challengeType: 'wellness',
+    challengeTypes: ['wellness'],
+    gender: 'all',
     durationDays: 56,
     scoring: {
       checkinPoints: 12,
       workoutPoints: 6,
       nutritionPoints: 8,
       stepsBuckets: [5000, 8000, 10000, 15000],
-      stepsPoints: 4,
+
       weightLossPoints: 8,
       consistencyBonus: 6,
       streakMultiplier: 1.15
@@ -240,9 +240,12 @@ const mockTemplates: ChallengeTemplate[] = [
         bodyMeasurements: false,
         activityLevel: true,
         skillLevel: true
-      }
+      },
+      timeCommitment: 'low',
+      location: 'anywhere',
+      groupSize: 'individual'
     },
-    tags: ['wellness', 'mental-health', 'stress-management', 'mindfulness'],
+    tags: ['mindfulness', 'stress-relief', 'lifestyle-change', 'habit-building'],
     isPublic: true,
     createdBy: 'wellness-expert',
     createdAt: Date.now() - 86400000 * 45,
@@ -262,7 +265,8 @@ const mockTemplates: ChallengeTemplate[] = [
         averageParticipantSatisfaction: 4.7,
         averageResults: '40% stress reduction',
         totalChallengesCreated: 890
-      }
+      },
+      licensing: { type: 'unlimited', terms: 'Unlimited use license', attributionRequired: true, modificationAllowed: true, commercialUse: true }
     },
     content: {
       overview: 'Reset your wellness with this holistic 8-week program.',
@@ -282,13 +286,6 @@ const mockTemplates: ChallengeTemplate[] = [
         metrics: ['Stress levels', 'Sleep quality', 'Mood', 'Energy levels'],
         checkpoints: []
       }
-    },
-    licensing: {
-      type: 'unlimited',
-      terms: 'Unlimited use license',
-      attributionRequired: true,
-      modificationAllowed: true,
-      commercialUse: true
     },
     creator: {
       name: 'Dr. Sarah Chen',

@@ -64,19 +64,6 @@ export default function ProgressPage() {
       }))
     }
     
-    // If new photoReferences exist, reconstruct URLs
-    if (checkin.photoReferences && checkin.photoReferences.length > 0) {
-      return checkin.photoReferences.map((ref: any) => {
-        // Reconstruct Firebase Storage URL
-        const fileName = ref.fileName
-        const baseUrl = `https://firebasestorage.googleapis.com/v0/b/${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}/o/progress-photos%2F${fileName}`
-        return {
-          url: `${baseUrl}?alt=media`,
-          angle: ref.angle
-        }
-      })
-    }
-    
     return []
   }
 
@@ -120,12 +107,10 @@ export default function ProgressPage() {
       // Debug: Log check-ins with photos
       console.log('Fetched check-ins:', checkinsWithChallenges)
       
-      // Handle both old photo structure and new photoReferences structure
+      // Handle photo structure
       const checkinsWithPhotos = checkinsWithChallenges.filter(checkin => {
-        // Check for old photos array
+        // Check for photos array
         if (checkin.photos && checkin.photos.length > 0) return true
-        // Check for new photoReferences array
-        if (checkin.photoReferences && checkin.photoReferences.length > 0) return true
         return false
       })
       console.log('Check-ins with photos:', checkinsWithPhotos)
@@ -268,8 +253,7 @@ export default function ProgressPage() {
             <p>Current User ID: {user?.uid || 'Not authenticated'}</p>
             <p>Total Check-ins: {checkins.length}</p>
             <p>Check-ins with Photos: {checkins.filter(checkin => {
-              return (checkin.photos && checkin.photos.length > 0) || 
-                     (checkin.photoReferences && checkin.photoReferences.length > 0)
+              return (checkin.photos && checkin.photos.length > 0)
             }).length}</p>
           </div>
         </div>

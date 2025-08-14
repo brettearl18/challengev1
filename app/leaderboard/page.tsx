@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/Card'
 import { Button } from '@/src/components/ui/Button'
-import { Trophy, Medal, Users, TrendingUp, Award, Clock, Target, Star, Crown } from 'lucide-react'
+import { Trophy, Medal, Users, TrendingUp, Award, Clock, Target, Star, Crown, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { getGlobalLeaderboard, GlobalLeaderboardEntry } from '@/src/lib/leaderboard.service'
 

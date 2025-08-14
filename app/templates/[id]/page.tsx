@@ -35,10 +35,12 @@ const mockTemplate: ChallengeTemplate = {
   name: '30-Day Fitness Transformation',
   description: 'A comprehensive 30-day program designed to kickstart your fitness journey with progressive workouts, nutrition guidance, and habit building.',
   challengeType: 'fitness',
+  challengeTypes: ['fitness'],
+  gender: 'all',
   durationDays: 30,
-  scoring: { checkinPoints: 10, workoutPoints: 5, nutritionPoints: 3, stepsBuckets: [5000, 8000, 10000, 15000], stepsPoints: 2, weightLossPoints: 10, consistencyBonus: 5, streakMultiplier: 1.1 },
-  requirements: { minAge: 18, fitnessLevel: 'beginner', equipment: ['dumbbells', 'resistance bands'], medicalClearance: false, requiresHealthBaseline: true, requiresBeforePhotos: true, requiresProgressPhotos: true, healthMetrics: { weight: true, height: true, bodyMeasurements: true, activityLevel: true, skillLevel: true } },
-  tags: ['beginner-friendly', 'weight-loss', 'muscle-building'],
+  scoring: { checkinPoints: 10, workoutPoints: 5, nutritionPoints: 3, stepsBuckets: [5000, 8000, 10000, 15000], weightLossPoints: 10, consistencyBonus: 5, streakMultiplier: 1.1, healthProfileBonus: 2, beforePhotosBonus: 1.5, progressPhotosBonus: 1 },
+  requirements: { minAge: 18, fitnessLevel: 'beginner', equipment: ['dumbbells', 'resistance bands'], medicalClearance: false, requiresHealthBaseline: true, requiresBeforePhotos: true, requiresProgressPhotos: true, healthMetrics: { weight: true, height: true, bodyMeasurements: true, activityLevel: true, skillLevel: true }, timeCommitment: 'medium', location: 'anywhere', groupSize: 'individual' },
+  tags: ['beginner', 'weight-loss', 'muscle-gain'],
   isPublic: true,
   createdBy: 'system',
   createdAt: Date.now() - 86400000 * 30,
@@ -53,7 +55,8 @@ const mockTemplate: ChallengeTemplate = {
     estimatedResults: ['5-10 lbs weight loss', 'Improved endurance', 'Better sleep quality'],
     timeCommitment: 'medium',
     equipmentRequired: ['dumbbells', 'resistance bands', 'yoga mat'],
-    successMetrics: { averageCompletionRate: 78, averageParticipantSatisfaction: 4.6, averageResults: '7.2 lbs weight loss', totalChallengesCreated: 1250 }
+    successMetrics: { averageCompletionRate: 78, averageParticipantSatisfaction: 4.6, averageResults: '7.2 lbs weight loss', totalChallengesCreated: 1250 },
+    licensing: { type: 'free', terms: 'Free for personal and commercial use', attributionRequired: false, modificationAllowed: true, commercialUse: true }
   },
   content: {
     overview: 'Transform your fitness in just 30 days with this comprehensive program.',
@@ -62,7 +65,6 @@ const mockTemplate: ChallengeTemplate = {
     habitBuilding: { dailyHabits: ['Morning workout', 'Track nutrition', '10k steps'], weeklyHabits: ['Weigh-in', 'Progress photos', 'Recovery day'], trackingMethods: ['App logging', 'Photo documentation', 'Measurement tracking'], motivationTips: ['Set realistic goals', 'Find workout buddy', 'Celebrate small wins'] },
     progressTracking: { metrics: ['Weight', 'Body measurements', 'Progress photos', 'Workout performance'], checkpoints: [{ week: 2, measurements: ['Weight', 'Waist', 'Hips'], photos: true, assessments: ['Fitness test', 'Energy levels'] }] }
   },
-  licensing: { type: 'free', terms: 'Free for personal and commercial use', attributionRequired: false, modificationAllowed: true, commercialUse: true },
   creator: { name: 'Fitness Challenge Team', bio: 'Expert fitness professionals with years of experience in program design', credentials: ['Certified Personal Trainers', 'Nutrition Specialists', 'Sports Scientists'], profileImage: '/api/placeholder/100/100' }
 }
 

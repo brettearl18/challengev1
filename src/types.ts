@@ -1,6 +1,27 @@
 export type Role = 'participant' | 'coach' | 'admin'
 
-export type ChallengeType = 'fitness' | 'weight-loss' | 'wellness' | 'strength' | 'endurance'
+export type ChallengeType = 'fitness' | 'weight-loss' | 'wellness' | 'strength' | 'endurance' | 'nutrition' | 'mindfulness' | 'yoga' | 'pilates' | 'cardio' | 'hiit' | 'flexibility' | 'balance' | 'recovery' | 'sports' | 'outdoor' | 'indoor' | 'team' | 'individual' | 'competitive' | 'casual' | 'beginner-friendly' | 'advanced' | 'senior-friendly' | 'prenatal' | 'postpartum' | 'rehabilitation' | 'performance' | 'lifestyle' | 'transformation'
+
+export type ChallengeGender = 'all' | 'women-only' | 'men-only' | 'non-binary-friendly'
+
+export type ChallengeTag = 
+  // Demographics
+  | 'ladies-only' | 'men-only' | 'community' | 'online' | 'in-person' | 'hybrid'
+  // Fitness Categories
+  | 'strength' | 'fitness' | 'weight-loss' | 'gut-health' | 'cardio' | 'flexibility' | 'balance' | 'endurance'
+  // Specialized Programs
+  | 'yoga' | 'pilates' | 'crossfit' | 'hiit' | 'tabata' | 'calisthenics' | 'powerlifting' | 'bodybuilding'
+  // Health & Wellness
+  | 'nutrition' | 'mindfulness' | 'meditation' | 'stress-relief' | 'sleep-improvement' | 'energy-boost'
+  // Life Stages
+  | 'beginner' | 'intermediate' | 'advanced' | 'senior-friendly' | 'prenatal' | 'postpartum' | 'teen-friendly'
+  // Equipment & Environment
+  | 'no-equipment' | 'home-workout' | 'gym-based' | 'outdoor' | 'indoor' | 'travel-friendly'
+  // Social & Motivation
+  | 'team-challenge' | 'individual' | 'competitive' | 'casual' | 'accountability' | 'support-group'
+  // Goals & Outcomes
+  | 'transformation' | 'maintenance' | 'performance' | 'rehabilitation' | 'lifestyle-change' | 'habit-building'
+  | 'muscle-gain' | 'fat-loss' | 'toning' | 'posture-improvement' | 'injury-prevention' | 'recovery'
 
 export interface UserProfile {
   uid: string
@@ -33,10 +54,28 @@ export interface Challenge {
   endDate?: string
   durationDays?: number // alternative to fixed dates
   priceCents: number
-  currency: 'AUD' | 'USD'
+  currency: 'USD' | 'AUD' | 'CAD' | 'GBP'
   challengeType: ChallengeType
+  challengeTypes: ChallengeType[] // Multiple challenge types
+  gender: ChallengeGender // Gender targeting
+  tags: ChallengeTag[] // Tag cloud for discoverability
   maxParticipants?: number
   currentParticipants: number
+  
+  // Enhanced Challenge Structure
+  challengePhases?: ChallengePhase[]
+  flexibleStart?: boolean // Allow participants to start anytime
+  
+  // Enhanced Target Audience
+  targetAudience?: {
+    fitnessLevel: 'beginner' | 'intermediate' | 'advanced'
+    ageGroups: string[]
+    equipmentRequired: string[]
+    medicalClearance: boolean
+    prerequisites: string[]
+    skillRequirements: string[]
+  }
+  
   scoring: {
     checkinPoints: number
     workoutPoints: number
@@ -44,22 +83,23 @@ export interface Challenge {
     stepsBuckets: number[] // e.g. [5000, 8000, 10000]
     weightLossPoints?: number
     consistencyBonus?: number
+    streakBonus?: number
     streakMultiplier?: number
     // Progressive completion bonuses
     healthProfileBonus?: number // Percentage of max points (1-3%)
     beforePhotosBonus?: number // Percentage of max points (1-3%)
     progressPhotosBonus?: number // Percentage of max points (1-3%)
+    progressPoints?: number // Points for progress measurements
+    teamBonus?: number // Points for team participation
   }
-  timezone: string // cohort timezone
-  status: 'draft' | 'published' | 'archived' | 'completed'
-  createdAt: number
-  tags?: string[]
+  
+  // Enhanced Requirements
   requirements: {
     minAge?: number
     fitnessLevel: 'beginner' | 'intermediate' | 'advanced'
     equipment: string[]
     medicalClearance: boolean
-    // New: Health baseline requirements
+    // Health baseline requirements
     requiresHealthBaseline: boolean
     requiresBeforePhotos: boolean
     requiresProgressPhotos: boolean
@@ -70,16 +110,81 @@ export interface Challenge {
       activityLevel: boolean
       skillLevel: boolean
     }
+    // New: Challenge-specific requirements
+    timeCommitment: 'low' | 'medium' | 'high'
+    location: 'home' | 'gym' | 'outdoor' | 'anywhere'
+    groupSize: 'individual' | 'small-group' | 'large-group'
   }
+  
+  // Enhanced Prizes & Incentives
   prizes?: {
     firstPlace: string
     secondPlace: string
     thirdPlace: string
     participation: string
+    // New: Milestone rewards
+    milestoneRewards?: {
+      week1?: string
+      week2?: string
+      week3?: string
+      week4?: string
+    }
+    // New: Social recognition
+    socialRecognition?: {
+      leaderboardFeature: boolean
+      socialMediaShoutout: boolean
+      communitySpotlight: boolean
+      successStorySharing: boolean
+    }
   }
+  
+  // New: Digital Tools Integration
+  digitalTools?: {
+    fitnessApps: {
+      strava: boolean
+      myFitnessPal: boolean
+      fitbit: boolean
+      appleHealth: boolean
+      googleFit: boolean
+    }
+    socialPlatforms: {
+      instagram: boolean
+      facebook: boolean
+      whatsapp: boolean
+      discord: boolean
+    }
+    progressTracking: {
+      beforePhotos: boolean
+      progressPhotos: boolean
+      measurements: boolean
+      videoProgress: boolean
+      journalEntries: boolean
+    }
+  }
+  
+  // New: Content & Resources
+  content?: {
+    workoutVideos?: VideoContent[]
+    nutritionGuides?: NutritionGuide[]
+    downloadableResources?: DownloadableResource[]
+    educationalContent?: EducationalContent[]
+  }
+  
+  timezone: string // cohort timezone
+  status: 'draft' | 'published' | 'archived' | 'completed'
+  createdAt: number
   termsAndConditions?: string
   privacyPolicy?: string
   habits?: Habit[]
+  
+  // Anti-cheat system
+  antiCheat?: {
+    cooldownMinutes: number
+    duplicateDetection: boolean
+    anomalyThreshold: number
+    maxCheckinsPerDay: number
+  }
+  
   updatedAt?: number
   version?: number
 }
@@ -122,6 +227,7 @@ export interface Enrolment {
   userId: string
   challengeId: string
   paymentStatus: 'pending' | 'paid' | 'refunded'
+  status: 'active' | 'inactive' | 'completed' | 'dropped'
   createdAt: number
   startDate?: string
   lastCheckinDate?: string
@@ -133,6 +239,7 @@ export interface Enrolment {
     currentStreak: number
     longestStreak: number
   }
+  checkinsCompleted: number
   // New: Health baseline completion tracking
   healthBaseline?: HealthBaseline
   beforePhotos?: string[] // storage paths
@@ -211,6 +318,14 @@ export interface Checkin {
   waterIntake?: number // in liters
   meditationMinutes?: number
   photos?: string[] // storage paths
+  measurements?: {
+    chest?: number
+    waist?: number
+    hips?: number
+    biceps?: number
+    thighs?: number
+    calves?: number
+  }
   notes?: string
   autoScore?: number
   coachScore?: number
@@ -275,10 +390,12 @@ export interface ChallengeTemplate {
   name: string
   description: string
   challengeType: ChallengeType
+  challengeTypes: ChallengeType[] // Multiple challenge types
+  gender: ChallengeGender // Gender targeting
+  tags: ChallengeTag[] // Enhanced tag system
   durationDays: number
   scoring: Challenge['scoring']
   requirements: Challenge['requirements']
-  tags: string[]
   isPublic: boolean
   createdBy: string
   createdAt: number
@@ -288,7 +405,7 @@ export interface ChallengeTemplate {
   marketplace: {
     isPublished: boolean
     priceCents: number
-    currency: 'USD' | 'AUD'
+    currency: 'USD' | 'AUD' | 'CAD' | 'GBP'
     qualityTier: 'free' | 'premium' | 'expert' | 'platinum'
     category: 'fitness' | 'weight-loss' | 'strength' | 'endurance' | 'wellness' | 'nutrition' | 'mindfulness'
     difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert'
@@ -308,6 +425,14 @@ export interface ChallengeTemplate {
       averageParticipantSatisfaction: number
       averageResults: string
       totalChallengesCreated: number
+    }
+    licensing: {
+      type: 'free' | 'single-use' | 'unlimited' | 'subscription'
+      terms: string
+      attributionRequired: boolean
+      modificationAllowed: boolean
+      commercialUse: boolean
+      expirationDate?: number
     }
   }
   
@@ -368,15 +493,7 @@ export interface ChallengeTemplate {
     }
   }
   
-  // Licensing and usage
-  licensing: {
-    type: 'free' | 'single-use' | 'unlimited' | 'subscription'
-    terms: string
-    attributionRequired: boolean
-    modificationAllowed: boolean
-    commercialUse: boolean
-    expirationDate?: number
-  }
+
   
   // Creator information
   creator: {
@@ -400,7 +517,7 @@ export interface TemplatePurchase {
   coachId: string
   purchaseDate: number
   priceCents: number
-  currency: 'USD' | 'AUD'
+  currency: 'USD' | 'AUD' | 'CAD' | 'GBP'
   status: 'pending' | 'completed' | 'failed' | 'refunded'
   paymentMethod?: string
   transactionId?: string
@@ -424,7 +541,6 @@ export interface TemplateFilters {
   }
   challengeType?: string
   equipmentRequired?: string[]
-  tags?: string[]
   creatorId?: string
   rating?: number
   freeOnly?: boolean
@@ -454,4 +570,139 @@ export interface ChallengeStats {
     rank: number
   }>
   lastUpdated: number
+}
+
+// New: Enhanced Challenge Interfaces
+export interface ChallengePhase {
+  id: string
+  phaseNumber: number
+  title: string
+  description: string
+  duration: number // days
+  goals: string[]
+  difficulty: 'easy' | 'medium' | 'hard'
+  milestones: string[]
+  restDays: number[]
+  createdAt: number
+  updatedAt?: number
+}
+
+export interface VideoContent {
+  id: string
+  title: string
+  description: string
+  videoUrl: string
+  thumbnailUrl?: string
+  duration: number // seconds
+  difficulty: string
+  phase: number
+  category: 'workout' | 'nutrition' | 'education' | 'motivation'
+  createdAt: number
+  updatedAt?: number
+}
+
+export interface NutritionGuide {
+  id: string
+  title: string
+  type: 'meal-plan' | 'recipe' | 'shopping-list' | 'education' | 'tips'
+  content: string
+  attachments: string[]
+  phase: number
+  difficulty: string
+  createdAt: number
+  updatedAt?: number
+}
+
+export interface DownloadableResource {
+  id: string
+  title: string
+  type: 'pdf' | 'image' | 'template' | 'calendar' | 'tracker' | 'checklist'
+  fileUrl: string
+  description: string
+  fileSize: number
+  phase: number
+  createdAt: number
+  updatedAt?: number
+}
+
+export interface EducationalContent {
+  id: string
+  title: string
+  type: 'article' | 'video' | 'infographic' | 'worksheet' | 'quiz'
+  content: string
+  category: 'fitness' | 'nutrition' | 'recovery' | 'mindset' | 'science'
+  difficulty: 'beginner' | 'intermediate' | 'advanced'
+  estimatedReadTime: number // minutes
+  phase: number
+  createdAt: number
+  updatedAt?: number
+} 
+
+export interface DigitalTools {
+  fitnessApps: {
+    strava: boolean
+    myFitnessPal: boolean
+    fitbit: boolean
+    appleHealth: boolean
+    googleFit: boolean
+  }
+  
+  socialPlatforms: {
+    instagram: boolean
+    facebook: boolean
+    whatsapp: boolean
+    discord: boolean
+  }
+  
+  progressTracking: {
+    beforePhotos: boolean
+    progressPhotos: boolean
+    measurements: boolean
+    videoProgress: boolean
+    journalEntries: boolean
+  }
+}
+
+export interface CheatDetection {
+  type: 'anomaly' | 'duplicate' | 'pattern' | 'suspicious' | 'manual'
+  confidence: number
+  details: string
+  action: 'review' | 'flag' | 'block' | 'none'
+}
+
+export interface ChallengePhase {
+  phaseNumber: number
+  title: string
+  description: string
+  duration: number // days
+  goals: string[]
+  difficulty: 'easy' | 'medium' | 'hard'
+}
+
+export interface ChallengeContent {
+  workoutVideos: {
+    id: string
+    title: string
+    description: string
+    videoUrl: string
+    duration: number
+    difficulty: string
+    phase: number
+  }[]
+  
+  nutritionGuides: {
+    id: string
+    title: string
+    type: 'meal-plan' | 'recipe' | 'shopping-list' | 'education'
+    content: string
+    attachments: string[]
+  }[]
+  
+  downloadableResources: {
+    id: string
+    title: string
+    type: 'pdf' | 'image' | 'template' | 'calendar'
+    fileUrl: string
+    description: string
+  }[]
 } 

@@ -175,17 +175,17 @@ export default function ChallengeSettingsPage() {
       }
 
       // Only include fields that exist and have values
-      if (challenge.requirements) {
-        updateData.requirements = challenge.requirements
+      if (safeChallenge.requirements) {
+        updateData.requirements = safeChallenge.requirements
       }
-      if (challenge.termsAndConditions) {
-        updateData.termsAndConditions = challenge.termsAndConditions
+      if (safeChallenge.termsAndConditions) {
+        updateData.termsAndConditions = safeChallenge.termsAndConditions
       }
-      if (challenge.privacyPolicy) {
-        updateData.privacyPolicy = challenge.privacyPolicy
+      if (safeChallenge.privacyPolicy) {
+        updateData.privacyPolicy = safeChallenge.privacyPolicy
       }
-      if (challenge.habits) {
-        updateData.habits = challenge.habits
+      if (safeChallenge.habits) {
+        updateData.habits = safeChallenge.habits
       }
 
       // Log the data being sent for debugging
@@ -248,8 +248,8 @@ export default function ChallengeSettingsPage() {
       }
       
       const updatedHabits = editingHabit
-        ? (challenge.habits || []).map(h => h.id === editingHabit.id ? newHabit : h)
-        : [...(challenge.habits || []), newHabit]
+        ? (safeChallenge.habits.map(h => h.id === editingHabit.id ? newHabit : h))
+        : [...safeChallenge.habits, newHabit]
       
       const challengeRef = doc(db, 'challenges', challengeId)
       await updateDoc(challengeRef, {
@@ -273,7 +273,7 @@ export default function ChallengeSettingsPage() {
     if (!challenge) return
     
     try {
-      const updatedHabits = (challenge.habits || []).filter(h => h.id !== habitId)
+      const updatedHabits = safeChallenge.habits.filter(h => h.id !== habitId)
       
       const challengeRef = doc(db, 'challenges', challengeId)
       await updateDoc(challengeRef, {
@@ -331,6 +331,84 @@ export default function ChallengeSettingsPage() {
     )
   }
 
+  // Ensure challenge has all required properties with fallbacks
+  const safeChallenge = {
+    ...challenge,
+    name: challenge.name || 'Unnamed Challenge',
+    scoring: challenge.scoring || {
+      checkinPoints: 0,
+      workoutPoints: 0,
+      nutritionPoints: 0,
+      stepsBuckets: [5000, 8000, 10000],
+      weightLossPoints: 0,
+      consistencyBonus: 0,
+      streakMultiplier: 1,
+      healthProfileBonus: 0,
+      beforePhotosBonus: 0,
+      progressPhotosBonus: 0
+    },
+    habits: challenge.habits || [],
+    requirements: challenge.requirements || {
+      minAge: 18,
+      fitnessLevel: 'beginner',
+      equipment: [],
+      medicalClearance: false,
+      requiresHealthBaseline: false,
+      requiresBeforePhotos: false,
+      requiresProgressPhotos: false,
+      healthMetrics: {
+        weight: false,
+        height: false,
+        bodyMeasurements: false,
+        activityLevel: false,
+        skillLevel: false
+      },
+      // New required fields from enhanced Challenge interface
+      timeCommitment: 'medium' as 'low' | 'medium' | 'high',
+      location: 'anywhere' as 'home' | 'gym' | 'outdoor' | 'anywhere',
+      groupSize: 'individual' as 'individual' | 'small-group' | 'large-group'
+    },
+    // Add other new required fields with defaults
+    targetAudience: challenge.targetAudience || {
+      fitnessLevel: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
+      ageGroups: ['18-25', '26-35', '36-45', '46-55', '55+'],
+      equipmentRequired: [],
+      medicalClearance: false,
+      prerequisites: [],
+      skillRequirements: []
+    },
+    digitalTools: challenge.digitalTools || {
+      fitnessApps: {
+        strava: false,
+        myFitnessPal: false,
+        fitbit: false,
+        appleHealth: false,
+        googleFit: false
+      },
+      socialPlatforms: {
+        instagram: false,
+        facebook: false,
+        whatsapp: false,
+        discord: false
+      },
+      progressTracking: {
+        beforePhotos: false,
+        progressPhotos: false,
+        measurements: false,
+        videoProgress: false,
+        journalEntries: false
+      }
+    },
+    content: challenge.content || {
+      workoutVideos: [],
+      nutritionGuides: [],
+      downloadableResources: [],
+      educationalContent: []
+    },
+    challengePhases: challenge.challengePhases || [],
+    flexibleStart: challenge.flexibleStart || false
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
@@ -346,7 +424,7 @@ export default function ChallengeSettingsPage() {
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Challenge Settings</h1>
-                <p className="text-gray-600">{challenge.name}</p>
+                <p className="text-gray-600">{safeChallenge.name}</p>
               </div>
             </div>
             <Button
@@ -680,17 +758,17 @@ export default function ChallengeSettingsPage() {
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="text-center p-4 bg-gray-50 rounded-xl">
-                      <div className="text-2xl font-bold text-blue-600">{challenge.scoring.checkinPoints}</div>
+                      <div className="text-2xl font-bold text-blue-600">{safeChallenge.scoring.checkinPoints}</div>
                       <div className="text-sm text-gray-600">Daily Check-in</div>
                     </div>
                     
                     <div className="text-center p-4 bg-gray-50 rounded-xl">
-                      <div className="text-2xl font-bold text-green-600">{challenge.scoring.workoutPoints}</div>
+                      <div className="text-2xl font-bold text-green-600">{safeChallenge.scoring.workoutPoints}</div>
                       <div className="text-sm text-gray-600">Per Workout</div>
                     </div>
                     
                     <div className="text-center p-4 bg-gray-50 rounded-xl">
-                      <div className="text-2xl font-bold text-purple-600">{challenge.scoring.nutritionPoints}</div>
+                      <div className="text-2xl font-bold text-purple-600">{safeChallenge.scoring.nutritionPoints}</div>
                       <div className="text-sm text-gray-600">Nutrition Score</div>
                     </div>
                   </div>
@@ -725,15 +803,15 @@ export default function ChallengeSettingsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {challenge.habits && challenge.habits.length > 0 && (
+                      {safeChallenge.habits && safeChallenge.habits.length > 0 && (
                         <Button
                           variant="outline"
                           onClick={() => {
-                            const allEvents = challenge.habits!.flatMap(habit => 
-                              HabitCalendarService.generateHabitCalendar(habit, challenge)
+                            const allEvents = safeChallenge.habits.flatMap(habit => 
+                              HabitCalendarService.generateHabitCalendar(habit, safeChallenge)
                             )
                             if (allEvents.length > 0) {
-                              HabitCalendarService.downloadHabitCalendar(allEvents, `${challenge.name}_all_habits.ics`)
+                              HabitCalendarService.downloadHabitCalendar(allEvents, `${safeChallenge.name}_all_habits.ics`)
                             }
                           }}
                           className="border-green-200 text-green-600 hover:bg-green-50"
@@ -754,9 +832,9 @@ export default function ChallengeSettingsPage() {
                 </div>
                 
                 <div className="p-6">
-                  {challenge.habits && challenge.habits.length > 0 ? (
+                  {safeChallenge.habits && safeChallenge.habits.length > 0 ? (
                     <div className="space-y-4">
-                      {challenge.habits.map((habit) => (
+                      {safeChallenge.habits.map((habit) => (
                         <div key={habit.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -808,7 +886,7 @@ export default function ChallengeSettingsPage() {
                                 {/* Debug info - remove this later */}
                                 {process.env.NODE_ENV === 'development' && (
                                   <div className="mb-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
-                                    Debug: Start: {challenge.startDate}, End: {challenge.endDate}, Duration: {challenge.durationDays} days
+                                    Debug: Start: {safeChallenge.startDate}, End: {safeChallenge.endDate}, Duration: {safeChallenge.durationDays} days
                                     <br />
                                     Habit Calendar: {habit.calendarIntegration?.enabled ? 'Enabled' : 'Disabled'} 
                                     {habit.calendarIntegration?.enabled && (
@@ -818,11 +896,11 @@ export default function ChallengeSettingsPage() {
                                 )}
                                 <HabitCalendarButton
                                   habit={habit}
-                                  challenge={challenge}
+                                  challenge={safeChallenge}
                                   onUpdateHabit={async (updatedHabit) => {
                                     try {
                                       // Update local state
-                                      const updatedHabits = (challenge.habits || []).map(h => 
+                                      const updatedHabits = (safeChallenge.habits || []).map(h => 
                                         h.id === updatedHabit.id ? updatedHabit : h
                                       )
                                       setChallenge(prev => prev ? { ...prev, habits: updatedHabits } : null)

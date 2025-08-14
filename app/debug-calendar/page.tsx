@@ -57,15 +57,19 @@ export default function DebugCalendarPage() {
       id: 'test-challenge-1',
       name: '30 Day Fitness Challenge',
       description: 'A test challenge for calendar debugging',
-      category: 'fitness',
-      type: 'individual',
+      challengeType: 'fitness',
+      challengeTypes: ['fitness'],
+      gender: 'all',
+      tags: [],
       status: 'published',
       startDate: '2025-01-01',
       endDate: '2025-01-31',
       durationDays: 31,
       maxParticipants: 100,
+      currentParticipants: 0,
       priceCents: 0,
       currency: 'AUD',
+      timezone: 'UTC',
       scoring: {
         checkinPoints: 10,
         workoutPoints: 20,
@@ -77,8 +81,61 @@ export default function DebugCalendarPage() {
       },
       requirements: {
         minAge: 18,
-        fitnessLevel: 'beginner'
+        fitnessLevel: 'beginner',
+        equipment: [],
+        medicalClearance: false,
+        requiresHealthBaseline: false,
+        requiresBeforePhotos: false,
+        requiresProgressPhotos: false,
+        healthMetrics: {
+          weight: true,
+          height: true,
+          bodyMeasurements: true,
+          activityLevel: true,
+          skillLevel: true
+        },
+        timeCommitment: 'medium',
+        location: 'anywhere',
+        groupSize: 'individual'
       },
+      targetAudience: {
+        fitnessLevel: 'beginner',
+        ageGroups: ['18-25', '26-35', '36-45', '46-55', '55+'],
+        equipmentRequired: [],
+        medicalClearance: false,
+        prerequisites: [],
+        skillRequirements: []
+      },
+      digitalTools: {
+        fitnessApps: {
+          strava: false,
+          myFitnessPal: false,
+          fitbit: false,
+          appleHealth: false,
+          googleFit: false
+        },
+        socialPlatforms: {
+          instagram: false,
+          facebook: false,
+          whatsapp: false,
+          discord: false
+        },
+        progressTracking: {
+          beforePhotos: false,
+          progressPhotos: false,
+          measurements: false,
+          videoProgress: false,
+          journalEntries: false
+        }
+      },
+      content: {
+        workoutVideos: [],
+        nutritionGuides: [],
+        downloadableResources: [],
+        educationalContent: []
+      },
+      challengePhases: [],
+      flexibleStart: false,
       termsAndConditions: 'Test terms',
       privacyPolicy: 'Test privacy policy',
       habits: [testHabit],
@@ -180,15 +237,19 @@ export default function DebugCalendarPage() {
       id: 'test-challenge-1',
       name: 'Test Challenge',
       description: 'A test challenge',
-      category: 'fitness',
-      type: 'individual',
+      challengeType: 'fitness',
+      challengeTypes: ['fitness'],
+      gender: 'all',
+      tags: [],
       status: 'published',
       startDate: '2025-01-01',
       endDate: '2025-01-07',
       durationDays: 7,
       maxParticipants: 10,
+      currentParticipants: 0,
       priceCents: 0,
       currency: 'AUD',
+      timezone: 'UTC',
       scoring: {
         checkinPoints: 10,
         workoutPoints: 20,
@@ -196,12 +257,68 @@ export default function DebugCalendarPage() {
         stepsBuckets: [5000, 10000, 15000],
         weightLossPoints: 50,
         consistencyBonus: 25,
-        streakMultiplier: 1.5
+        streakMultiplier: 1.5,
+        healthProfileBonus: 2,
+        beforePhotosBonus: 1.5,
+        progressPhotosBonus: 1
       },
       requirements: {
         minAge: 18,
-        fitnessLevel: 'beginner'
+        fitnessLevel: 'beginner',
+        equipment: [],
+        medicalClearance: false,
+        requiresHealthBaseline: false,
+        requiresBeforePhotos: false,
+        requiresProgressPhotos: false,
+        healthMetrics: {
+          weight: true,
+          height: true,
+          bodyMeasurements: true,
+          activityLevel: true,
+          skillLevel: true
+        },
+        timeCommitment: 'medium',
+        location: 'anywhere',
+        groupSize: 'individual'
       },
+      targetAudience: {
+        fitnessLevel: 'beginner',
+        ageGroups: ['18-25', '26-35', '36-45', '46-55', '55+'],
+        equipmentRequired: [],
+        medicalClearance: false,
+        prerequisites: [],
+        skillRequirements: []
+      },
+      digitalTools: {
+        fitnessApps: {
+          strava: false,
+          myFitnessPal: false,
+          fitbit: false,
+          appleHealth: false,
+          googleFit: false
+        },
+        socialPlatforms: {
+          instagram: false,
+          facebook: false,
+          whatsapp: false,
+          discord: false
+        },
+        progressTracking: {
+          beforePhotos: false,
+          progressPhotos: false,
+          measurements: false,
+          videoProgress: false,
+          journalEntries: false
+        }
+      },
+      content: {
+        workoutVideos: [],
+        nutritionGuides: [],
+        downloadableResources: [],
+        educationalContent: []
+      },
+      challengePhases: [],
+      flexibleStart: false,
       termsAndConditions: 'Test terms',
       privacyPolicy: 'Test privacy policy',
       habits: [testHabit],

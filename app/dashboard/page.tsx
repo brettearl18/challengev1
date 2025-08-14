@@ -309,7 +309,7 @@ export default function DashboardPage() {
           {recentCheckins.length > 0 ? (
             <div className="space-y-4">
               {recentCheckins.slice(0, 5).map((checkin, index) => {
-                const challenge = enrolments.find(e => e.challengeId === checkin.challengeId)?.challenge
+                const enrolment = enrolments.find(e => e.challengeId === checkin.challengeId)
                 return (
                   <div key={checkin.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
                     <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -317,7 +317,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">Check-in completed</p>
-                      <p className="text-sm text-gray-600">{challenge?.name || 'Unknown Challenge'}</p>
+                      <p className="text-sm text-gray-600">Challenge #{checkin.challengeId.slice(-6)}</p>
                     </div>
                     <div className="text-sm text-gray-500">
                       {new Date(checkin.createdAt).toLocaleDateString()}

@@ -7,7 +7,6 @@ import {
   where, 
   orderBy, 
   limit, 
-  Timestamp,
   onSnapshot,
   Unsubscribe
 } from 'firebase/firestore'
@@ -89,13 +88,13 @@ export const getChallengeLeaderboard = async (challengeId: string): Promise<Chal
       const checkinsQuery = query(
         collection(db, 'checkins'),
         where('enrolmentId', '==', enrolment.id),
-        orderBy('timestamp', 'desc')
+        orderBy('date', 'desc')
       )
       const checkinsSnap = await getDocs(checkinsQuery)
       const checkins = checkinsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Checkin))
       
       const totalScore = checkins.reduce((sum, checkin) => sum + (checkin.autoScore || 0), 0)
-      const lastCheckin = checkins.length > 0 ? checkins[0].timestamp?.toDate() : undefined
+      const lastCheckin = checkins.length > 0 ? new Date(checkins[0].date) : undefined
       
       // Calculate streak
       const streak = calculateStreak(checkins)
@@ -207,7 +206,7 @@ export const getGlobalLeaderboard = async (limitCount: number = 50): Promise<Glo
         displayName: undefined, // Will be populated later
         photoURL: undefined
       }))
-      .sort((a, b) => b.totalScore - a.score)
+      .sort((a, b) => b.totalScore - a.totalScore)
       .slice(0, limitCount)
     
     // 4. Assign ranks
@@ -239,7 +238,8 @@ export const subscribeToChallengeLeaderboard = (
   const unsubscribe = onSnapshot(
     query(
       collection(db, 'checkins'),
-      where('challengeId', '==', challengeId)
+      where('challengeId', '==', challengeId),
+      orderBy('date', 'desc')
     ),
     async () => {
       // Refetch the entire leaderboard when check-ins change
@@ -294,14 +294,14 @@ const calculateStreak = (checkins: Checkin[]): number => {
   if (checkins.length === 0) return 0
   
   const sortedCheckins = checkins.sort((a, b) => 
-    (b.timestamp?.toDate()?.getTime() || 0) - (a.timestamp?.toDate()?.getTime() || 0)
+    new Date(b.date).getTime() - new Date(a.date).getTime()
   )
   
   let currentStreak = 0
   let lastDate: Date | null = null
   
   for (const checkin of sortedCheckins) {
-    const checkinDate = checkin.timestamp?.toDate()
+    const checkinDate = new Date(checkin.date)
     if (!checkinDate) continue
     
     if (!lastDate) {
@@ -327,7 +327,7 @@ const calculateStreak = (checkins: Checkin[]): number => {
  * Helper function to populate user details
  */
 const populateUserDetails = async (participants: Array<{ userId: string; displayName?: string; photoURL?: string }>) => {
-  const uniqueUserIds = [...new Set(participants.map(p => p.userId))]
+  const uniqueUserIds = Array.from(new Set(participants.map(p => p.userId)))
   
   for (const userId of uniqueUserIds) {
     try {
@@ -411,7 +411,7 @@ const getParticipationTrend = async (challengeId: string) => {
     const checkinsQuery = query(
       collection(db, 'checkins'),
       where('challengeId', '==', challengeId),
-      orderBy('timestamp', 'asc')
+      orderBy('date', 'asc')
     )
     const checkinsSnap = await getDocs(checkinsQuery)
     const checkins = checkinsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Checkin))
@@ -420,7 +420,7 @@ const getParticipationTrend = async (challengeId: string) => {
     const dailyCheckins: { [date: string]: number } = {}
     
     checkins.forEach(checkin => {
-      const date = checkin.timestamp?.toDate()?.toISOString().split('T')[0] || 'unknown'
+      const date = checkin.date || 'unknown'
       dailyCheckins[date] = (dailyCheckins[date] || 0) + 1
     })
     

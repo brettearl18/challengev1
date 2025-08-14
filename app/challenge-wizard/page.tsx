@@ -8,7 +8,7 @@ import { Button } from '@/src/components/ui/Button'
 import { Input } from '@/src/components/ui/Input'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/src/lib/firebase.client'
-import { Challenge, ChallengeType } from '@/src/types'
+import { Challenge, ChallengeType, ChallengeTag } from '@/src/types'
 import { useAuth } from '@/src/lib/auth'
 import { 
   Target, 
@@ -38,6 +38,8 @@ export default function ChallengeWizardPage() {
     name: '',
     description: '',
     challengeType: 'fitness' as ChallengeType,
+    challengeTypes: ['fitness'] as ChallengeType[],
+    gender: 'all' as 'all' | 'women-only' | 'men-only' | 'non-binary-friendly',
     durationDays: 30,
     priceCents: 0,
     currency: 'USD' as 'USD' | 'AUD',
@@ -71,9 +73,52 @@ export default function ChallengeWizardPage() {
         bodyMeasurements: true,
         activityLevel: true,
         skillLevel: true
+      },
+      // New required fields from enhanced Challenge interface
+      timeCommitment: 'medium' as 'low' | 'medium' | 'high',
+      location: 'anywhere' as 'home' | 'gym' | 'outdoor' | 'anywhere',
+      groupSize: 'individual' as 'individual' | 'small-group' | 'large-group'
+    },
+    // Add other new required fields with defaults
+    targetAudience: {
+      fitnessLevel: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
+      ageGroups: ['18-25', '26-35', '36-45', '46-55', '55+'],
+      equipmentRequired: [],
+      medicalClearance: false,
+      prerequisites: [],
+      skillRequirements: []
+    },
+    digitalTools: {
+      fitnessApps: {
+        strava: false,
+        myFitnessPal: false,
+        fitbit: false,
+        appleHealth: false,
+        googleFit: false
+      },
+      socialPlatforms: {
+        instagram: false,
+        facebook: false,
+        whatsapp: false,
+        discord: false
+      },
+      progressTracking: {
+        beforePhotos: false,
+        progressPhotos: false,
+        measurements: false,
+        videoProgress: false,
+        journalEntries: false
       }
     },
-    tags: [] as string[]
+    content: {
+      workoutVideos: [],
+      nutritionGuides: [],
+      downloadableResources: [],
+      educationalContent: []
+    },
+    challengePhases: [],
+    flexibleStart: false,
+    tags: [] as ChallengeTag[]
   })
 
   // Redirect if not authenticated or not coach
@@ -350,6 +395,8 @@ export default function ChallengeWizardPage() {
                   name: '',
                   description: '',
                   challengeType: 'fitness',
+                  challengeTypes: ['fitness'],
+                  gender: 'all',
                   durationDays: 30,
                   priceCents: 0,
                   currency: 'USD',
@@ -362,14 +409,68 @@ export default function ChallengeWizardPage() {
                     stepsPoints: 2,
                     weightLossPoints: 10,
                     consistencyBonus: 5,
-                    streakMultiplier: 1.1
+                    streakMultiplier: 1.1,
+                    healthProfileBonus: 2,
+                    beforePhotosBonus: 1.5,
+                    progressPhotosBonus: 1
                   },
                   requirements: {
                     minAge: 18,
                     fitnessLevel: 'beginner',
                     equipment: [],
-                    medicalClearance: false
+                    medicalClearance: false,
+                    requiresHealthBaseline: false,
+                    requiresBeforePhotos: false,
+                    requiresProgressPhotos: false,
+                    healthMetrics: {
+                      weight: true,
+                      height: true,
+                      bodyMeasurements: true,
+                      activityLevel: true,
+                      skillLevel: true
+                    },
+                    timeCommitment: 'medium',
+                    location: 'anywhere',
+                    groupSize: 'individual'
                   },
+                  targetAudience: {
+                    fitnessLevel: 'beginner',
+                    ageGroups: ['18-25', '26-35', '36-45', '46-55', '55+'],
+                    equipmentRequired: [],
+                    medicalClearance: false,
+                    prerequisites: [],
+                    skillRequirements: []
+                  },
+                  digitalTools: {
+                    fitnessApps: {
+                      strava: false,
+                      myFitnessPal: false,
+                      fitbit: false,
+                      appleHealth: false,
+                      googleFit: false
+                    },
+                    socialPlatforms: {
+                      instagram: false,
+                      facebook: false,
+                      whatsapp: false,
+                      discord: false
+                    },
+                    progressTracking: {
+                      beforePhotos: false,
+                      progressPhotos: false,
+                      measurements: false,
+                      videoProgress: false,
+                      journalEntries: false
+                    }
+                  },
+                  content: {
+                    workoutVideos: [],
+                    nutritionGuides: [],
+                    downloadableResources: [],
+                    educationalContent: []
+                  },
+                  challengePhases: [],
+                  flexibleStart: false,
                   tags: []
                 })
               }}

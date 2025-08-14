@@ -111,7 +111,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "timestamp",
+          "fieldPath": "date",
           "order": "DESCENDING"
         }
       ]
@@ -125,7 +125,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "timestamp",
+          "fieldPath": "date",
           "order": "ASCENDING"
         }
       ]
@@ -139,8 +139,58 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "timestamp",
+          "fieldPath": "date",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "challengeType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "requirements.fitnessLevel",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "requirements.timeCommitment",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "requirements.location",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "digitalTools.fitnessApps.strava",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
         }
       ]
     }

@@ -16,11 +16,17 @@ export class PersonalCalendarService {
     challenges: Challenge[],
     checkins: Checkin[]
   ): PersonalCalendarData {
+    // Default return to ensure function always returns
+    if (!userId || !enrolments || !challenges || !checkins) {
+      return { userId: userId || '', enrolments: [], challenges: [], checkins: [], events: [] }
+    }
+    
     const events: CalendarEvent[] = []
     
-    enrolments.forEach(enrolment => {
+    // Process enrolments
+    for (const enrolment of enrolments) {
       const challenge = challenges.find(c => c.id === enrolment.challengeId)
-      if (!challenge) return
+      if (!challenge) continue
       
       if (challenge.startDate) {
         events.push({
@@ -47,33 +53,37 @@ export class PersonalCalendarService {
       }
       
       if (challenge.habits) {
-        challenge.habits.forEach(habit => {
+        for (const habit of challenge.habits) {
           if (habit.active) {
-            const habitEvents = this.generateHabitEvents(habit, challenge, userId)
+            const habitEvents = PersonalCalendarService.generateHabitEvents(habit, challenge, userId)
             events.push(...habitEvents)
           }
-        })
+        }
       }
-    })
+    }
     
-    checkins.forEach(checkin => {
+    // Process checkins
+    for (const checkin of checkins) {
       const challenge = challenges.find(c => c.id === checkin.challengeId)
       if (challenge) {
         events.push({
           id: `checkin-${checkin.id}`,
           title: `✅ Check-in: ${challenge.name}`,
-          description: `Completed: ${checkin.activities?.map(a => a.name).join(', ') || 'Daily check-in'}`,
+          description: `Daily check-in completed`,
           startDate: new Date(checkin.createdAt),
           allDay: false,
           categories: ['checkin', 'completed'],
           url: `${window.location.origin}/checkin`
         })
       }
-    })
+    }
     
+    // Sort events by date
     events.sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
     
-    return { userId, enrolments, challenges, checkins, events }
+    // Always return the result
+    const result: PersonalCalendarData = { userId, enrolments, challenges, checkins, events }
+    return result
   }
   
   static generateHabitEvents(habit: Habit, challenge: Challenge, userId: string): CalendarEvent[] {

@@ -55,6 +55,8 @@ export default function JoinChallengePage() {
         userId: user.uid,
         challengeId: challenge.id,
         paymentStatus: 'paid', // Free challenges are automatically paid
+        status: 'active',
+        checkinsCompleted: 0,
         createdAt: Date.now(),
         totalScore: 0
       })

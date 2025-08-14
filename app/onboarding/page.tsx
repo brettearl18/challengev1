@@ -123,6 +123,8 @@ export default function OnboardingPage() {
         userId: user.uid,
         challengeId: challenge.id,
         paymentStatus: 'paid', // Free challenges are automatically paid
+        status: 'active',
+        checkinsCompleted: 0,
         createdAt: Date.now(),
         totalScore: 0,
         healthBaseline: healthBaseline || undefined,
@@ -361,7 +363,7 @@ export default function OnboardingPage() {
                         Skip for Now
                       </Button>
                     )}
-                    <Button onClick={handleBeforePhotosComplete}>
+                    <Button onClick={() => handleBeforePhotosComplete(beforePhotos)}>
                       Continue
                       <ArrowRight className="w-4 w-4 ml-2" />
                     </Button>

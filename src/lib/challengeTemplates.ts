@@ -6,6 +6,8 @@ export const CHALLENGE_TEMPLATES: ChallengeTemplate[] = [
     name: '30-Day Fitness Bootcamp',
     description: 'Transform your fitness in just 30 days with this comprehensive bootcamp. Perfect for beginners looking to build healthy habits and see real results.',
     challengeType: 'fitness',
+    challengeTypes: ['fitness'],
+    gender: 'all',
     durationDays: 30,
     scoring: {
       checkinPoints: 15,
@@ -20,19 +22,77 @@ export const CHALLENGE_TEMPLATES: ChallengeTemplate[] = [
       minAge: 18,
       fitnessLevel: 'beginner',
       equipment: ['comfortable shoes', 'water bottle'],
-      medicalClearance: false
+      medicalClearance: false,
+      requiresHealthBaseline: false,
+      requiresBeforePhotos: false,
+      requiresProgressPhotos: false,
+      healthMetrics: {
+        weight: true,
+        height: true,
+        bodyMeasurements: true,
+        activityLevel: true,
+        skillLevel: true
+      },
+      timeCommitment: 'medium',
+      location: 'anywhere',
+      groupSize: 'individual'
     },
-    tags: ['beginner-friendly', '30-day', 'bootcamp', 'habits'],
+    tags: ['beginner', 'transformation', 'habit-building'],
     isPublic: true,
     createdBy: 'system',
     createdAt: Date.now(),
-    usageCount: 0
+    usageCount: 0,
+    marketplace: {
+      isPublished: true,
+      priceCents: 0,
+      currency: 'USD',
+      qualityTier: 'free',
+      category: 'fitness',
+      difficulty: 'beginner',
+      estimatedResults: ['Improved fitness', 'Better habits', 'Increased energy'],
+      timeCommitment: 'medium',
+      equipmentRequired: ['comfortable shoes', 'water bottle'],
+      successMetrics: {
+        averageCompletionRate: 75,
+        averageParticipantSatisfaction: 4.5,
+        averageResults: 'Improved fitness',
+        totalChallengesCreated: 0
+      },
+      licensing: { type: 'free', terms: 'Free for personal use', attributionRequired: false, modificationAllowed: true, commercialUse: false }
+    },
+    content: {
+      overview: 'Transform your fitness in just 30 days with this comprehensive bootcamp.',
+      weeklyPlans: [],
+      nutritionGuidance: {
+        mealPlans: [],
+        supplements: [],
+        hydration: '8-10 glasses of water daily'
+      },
+      habitBuilding: {
+        dailyHabits: ['Morning workout', 'Track nutrition', 'Stay hydrated'],
+        weeklyHabits: ['Weigh-in', 'Progress photos', 'Recovery day'],
+        trackingMethods: ['App logging', 'Photo documentation', 'Measurement tracking'],
+        motivationTips: ['Start small', 'Be consistent', 'Celebrate progress']
+      },
+      progressTracking: {
+        metrics: ['Weight', 'Body measurements', 'Progress photos', 'Workout performance'],
+        checkpoints: []
+      }
+    },
+    creator: {
+      name: 'Fitness Challenge Team',
+      bio: 'Expert fitness professionals with years of experience in program design',
+      credentials: ['Certified Personal Trainers', 'Nutrition Specialists', 'Sports Scientists'],
+      profileImage: '/api/placeholder/100/100'
+    }
   },
   {
     id: 'weight-loss-transformation',
     name: 'Weight Loss Transformation',
     description: 'A science-based approach to sustainable weight loss with nutrition guidance, workout plans, and progress tracking.',
     challengeType: 'weight-loss',
+    challengeTypes: ['weight-loss'],
+    gender: 'all',
     durationDays: 60,
     scoring: {
       checkinPoints: 20,
@@ -47,19 +107,49 @@ export const CHALLENGE_TEMPLATES: ChallengeTemplate[] = [
       minAge: 18,
       fitnessLevel: 'beginner',
       equipment: ['scale', 'measuring tape', 'comfortable workout clothes'],
-      medicalClearance: true
+      medicalClearance: true,
+      requiresHealthBaseline: true,
+      requiresBeforePhotos: true,
+      requiresProgressPhotos: true,
+      healthMetrics: {
+        weight: true,
+        height: true,
+        bodyMeasurements: true,
+        activityLevel: true,
+        skillLevel: true
+      },
+      timeCommitment: 'high',
+      location: 'anywhere',
+      groupSize: 'individual'
     },
-    tags: ['weight-loss', 'nutrition', '60-day', 'transformation'],
+    tags: ['weight-loss', 'nutrition', 'transformation'],
     isPublic: true,
     createdBy: 'system',
     createdAt: Date.now(),
-    usageCount: 0
+    usageCount: 0,
+    marketplace: {
+      isPublished: true,
+      priceCents: 0,
+      currency: 'USD',
+      qualityTier: 'free',
+      category: 'weight-loss',
+      difficulty: 'beginner',
+      estimatedResults: ['5-15 lbs weight loss', 'Improved nutrition', 'Better habits'],
+      timeCommitment: 'high',
+      equipmentRequired: ['scale', 'measuring tape', 'comfortable workout clothes'],
+      successMetrics: { averageCompletionRate: 70, averageParticipantSatisfaction: 4.6, averageResults: '8 lbs weight loss', totalChallengesCreated: 0 },
+      licensing: { type: 'free', terms: 'Free for personal use', attributionRequired: false, modificationAllowed: true, commercialUse: false }
+    },
+    content: { overview: 'Science-based weight loss transformation program.', weeklyPlans: [], nutritionGuidance: { mealPlans: [], supplements: [], hydration: '8-10 glasses of water daily' }, habitBuilding: { dailyHabits: [], weeklyHabits: [], trackingMethods: [], motivationTips: [] }, progressTracking: { metrics: [], checkpoints: [] } },
+    creator: { name: 'Fitness Challenge Team', bio: 'Expert fitness professionals', credentials: ['Certified Personal Trainers', 'Nutrition Specialists'], profileImage: '/api/placeholder/100/100' }
   },
   {
     id: 'strength-building-program',
     name: 'Strength Building Program',
     description: 'Build muscle and increase strength with progressive resistance training. Suitable for intermediate to advanced fitness levels.',
     challengeType: 'strength',
+    challengeTypes: ['strength'],
+    gender: 'all',
     durationDays: 90,
     scoring: {
       checkinPoints: 15,
@@ -74,19 +164,37 @@ export const CHALLENGE_TEMPLATES: ChallengeTemplate[] = [
       minAge: 18,
       fitnessLevel: 'intermediate',
       equipment: ['dumbbells', 'resistance bands', 'bench'],
-      medicalClearance: true
+      medicalClearance: true,
+      requiresHealthBaseline: true,
+      requiresBeforePhotos: true,
+      requiresProgressPhotos: true,
+      healthMetrics: {
+        weight: true,
+        height: true,
+        bodyMeasurements: true,
+        activityLevel: true,
+        skillLevel: true
+      },
+      timeCommitment: 'high',
+      location: 'gym',
+      groupSize: 'individual'
     },
-    tags: ['strength', 'muscle-building', '90-day', 'progressive'],
+    tags: ['strength', 'muscle-gain', 'performance'],
     isPublic: true,
     createdBy: 'system',
     createdAt: Date.now(),
-    usageCount: 0
+    usageCount: 0,
+    marketplace: { isPublished: true, priceCents: 0, currency: 'USD', qualityTier: 'free', category: 'strength', difficulty: 'intermediate', estimatedResults: ['Increased strength', 'Muscle growth', 'Better form'], timeCommitment: 'high', equipmentRequired: ['dumbbells', 'resistance bands', 'bench'], successMetrics: { averageCompletionRate: 65, averageParticipantSatisfaction: 4.7, averageResults: 'Increased strength', totalChallengesCreated: 0 }, licensing: { type: 'free', terms: 'Free for personal use', attributionRequired: false, modificationAllowed: true, commercialUse: false } },
+    content: { overview: 'Build muscle and increase strength with progressive resistance training.', weeklyPlans: [], nutritionGuidance: { mealPlans: [], supplements: [], hydration: '8-10 glasses of water daily' }, habitBuilding: { dailyHabits: [], weeklyHabits: [], trackingMethods: [], motivationTips: [] }, progressTracking: { metrics: [], checkpoints: [] } },
+    creator: { name: 'Fitness Challenge Team', bio: 'Expert fitness professionals', credentials: ['Certified Personal Trainers', 'Strength Coaches'], profileImage: '/api/placeholder/100/100' }
   },
   {
     id: 'wellness-journey',
     name: 'Wellness Journey',
     description: 'Holistic approach to wellness including mental health, sleep, nutrition, and gentle movement. Perfect for stress relief and overall wellbeing.',
     challengeType: 'wellness',
+    challengeTypes: ['wellness'],
+    gender: 'all',
     durationDays: 45,
     scoring: {
       checkinPoints: 20,
@@ -101,19 +209,37 @@ export const CHALLENGE_TEMPLATES: ChallengeTemplate[] = [
       minAge: 16,
       fitnessLevel: 'beginner',
       equipment: ['meditation app', 'journal', 'comfortable space'],
-      medicalClearance: false
+      medicalClearance: false,
+      requiresHealthBaseline: false,
+      requiresBeforePhotos: false,
+      requiresProgressPhotos: false,
+      healthMetrics: {
+        weight: false,
+        height: false,
+        bodyMeasurements: false,
+        activityLevel: true,
+        skillLevel: false
+      },
+      timeCommitment: 'low',
+      location: 'anywhere',
+      groupSize: 'individual'
     },
-    tags: ['wellness', 'mental-health', 'holistic', 'stress-relief'],
+    tags: ['mindfulness', 'stress-relief', 'lifestyle-change', 'habit-building'],
     isPublic: true,
     createdBy: 'system',
     createdAt: Date.now(),
-    usageCount: 0
+    usageCount: 0,
+    marketplace: { isPublished: true, priceCents: 0, currency: 'USD', qualityTier: 'free', category: 'wellness', difficulty: 'beginner', estimatedResults: ['Reduced stress', 'Better sleep', 'Improved mood'], timeCommitment: 'low', equipmentRequired: ['meditation app', 'journal', 'comfortable space'], successMetrics: { averageCompletionRate: 80, averageParticipantSatisfaction: 4.8, averageResults: 'Reduced stress', totalChallengesCreated: 0 }, licensing: { type: 'free', terms: 'Free for personal use', attributionRequired: false, modificationAllowed: true, commercialUse: false } },
+    content: { overview: 'Holistic approach to wellness including mental health and stress relief.', weeklyPlans: [], nutritionGuidance: { mealPlans: [], supplements: [], hydration: '8-10 glasses of water daily' }, habitBuilding: { dailyHabits: [], weeklyHabits: [], trackingMethods: [], motivationTips: [] }, progressTracking: { metrics: [], checkpoints: [] } },
+    creator: { name: 'Fitness Challenge Team', bio: 'Expert wellness professionals', credentials: ['Wellness Coaches', 'Mental Health Specialists'], profileImage: '/api/placeholder/100/100' }
   },
   {
     id: 'endurance-challenge',
     name: 'Endurance Challenge',
     description: 'Build cardiovascular endurance and stamina through running, cycling, and HIIT workouts. Challenge yourself to go further and faster.',
     challengeType: 'endurance',
+    challengeTypes: ['endurance'],
+    gender: 'all',
     durationDays: 75,
     scoring: {
       checkinPoints: 15,
@@ -128,13 +254,29 @@ export const CHALLENGE_TEMPLATES: ChallengeTemplate[] = [
       minAge: 18,
       fitnessLevel: 'intermediate',
       equipment: ['running shoes', 'fitness tracker', 'water bottle'],
-      medicalClearance: true
+      medicalClearance: true,
+      requiresHealthBaseline: true,
+      requiresBeforePhotos: false,
+      requiresProgressPhotos: true,
+      healthMetrics: {
+        weight: true,
+        height: true,
+        bodyMeasurements: false,
+        activityLevel: true,
+        skillLevel: true
+      },
+      timeCommitment: 'high',
+      location: 'outdoor',
+      groupSize: 'individual'
     },
-    tags: ['endurance', 'cardio', 'running', 'HIIT', '75-day'],
+    tags: ['endurance', 'cardio', 'hiit', 'performance'],
     isPublic: true,
     createdBy: 'system',
     createdAt: Date.now(),
-    usageCount: 0
+    usageCount: 0,
+    marketplace: { isPublished: true, priceCents: 0, currency: 'USD', qualityTier: 'free', category: 'endurance', difficulty: 'intermediate', estimatedResults: ['Improved endurance', 'Better stamina', 'Faster times'], timeCommitment: 'high', equipmentRequired: ['running shoes', 'fitness tracker', 'water bottle'], successMetrics: { averageCompletionRate: 70, averageParticipantSatisfaction: 4.6, averageResults: 'Improved endurance', totalChallengesCreated: 0 }, licensing: { type: 'free', terms: 'Free for personal use', attributionRequired: false, modificationAllowed: true, commercialUse: false } },
+    content: { overview: 'Build cardiovascular endurance and stamina through running and HIIT workouts.', weeklyPlans: [], nutritionGuidance: { mealPlans: [], supplements: [], hydration: '8-10 glasses of water daily' }, habitBuilding: { dailyHabits: [], weeklyHabits: [], trackingMethods: [], motivationTips: [] }, progressTracking: { metrics: [], checkpoints: [] } },
+    creator: { name: 'Fitness Challenge Team', bio: 'Expert endurance coaches', credentials: ['Running Coaches', 'Endurance Specialists'], profileImage: '/api/placeholder/100/100' }
   }
 ]
 

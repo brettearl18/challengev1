@@ -4,14 +4,15 @@ import { Challenge, Enrolment } from '../types'
 
 export const getChallenges = async (status?: 'published' | 'draft' | 'archived' | 'completed') => {
   try {
-    let q = collection(db, 'challenges')
+    let constraints: any[] = []
     
     if (status) {
-      q = query(q, where('status', '==', status))
+      constraints.push(where('status', '==', status))
     }
     
-    q = query(q, orderBy('createdAt', 'desc'))
+    constraints.push(orderBy('createdAt', 'desc'))
     
+    const q = query(collection(db, 'challenges'), ...constraints)
     const snapshot = await getDocs(q)
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Challenge[]
   } catch (error) {

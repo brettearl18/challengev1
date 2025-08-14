@@ -1,7 +1,7 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth'
 import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore'
-import { getStorage, Storage, connectStorageEmulator } from 'firebase/storage'
+import { getStorage, connectStorageEmulator } from 'firebase/storage'
 import { getMessaging, Messaging, isSupported } from 'firebase/messaging'
 
 const firebaseConfig = {
@@ -19,10 +19,10 @@ export const app: FirebaseApp = getApps().length ? getApps()[0] : initializeApp(
 // Initialize services
 export const auth: Auth = getAuth(app)
 export const db: Firestore = getFirestore(app)
-export const storage: Storage = getStorage(app)
+export const storage = getStorage(app)
 
 // Initialize messaging conditionally
-export const messaging: Messaging | null = (async () => {
+export const messaging = (async () => {
   if (await isSupported()) {
     return getMessaging(app)
   }
