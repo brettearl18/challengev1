@@ -45,22 +45,37 @@ export interface Challenge {
     weightLossPoints?: number
     consistencyBonus?: number
     streakMultiplier?: number
+    // Progressive completion bonuses
+    healthProfileBonus?: number // Percentage of max points (1-3%)
+    beforePhotosBonus?: number // Percentage of max points (1-3%)
+    progressPhotosBonus?: number // Percentage of max points (1-3%)
   }
   timezone: string // cohort timezone
   status: 'draft' | 'published' | 'archived' | 'completed'
   createdAt: number
   tags?: string[]
-  requirements?: {
+  requirements: {
     minAge?: number
-    fitnessLevel?: 'beginner' | 'intermediate' | 'advanced'
-    equipment?: string[]
-    medicalClearance?: boolean
+    fitnessLevel: 'beginner' | 'intermediate' | 'advanced'
+    equipment: string[]
+    medicalClearance: boolean
+    // New: Health baseline requirements
+    requiresHealthBaseline: boolean
+    requiresBeforePhotos: boolean
+    requiresProgressPhotos: boolean
+    healthMetrics: {
+      weight: boolean
+      height: boolean
+      bodyMeasurements: boolean
+      activityLevel: boolean
+      skillLevel: boolean
+    }
   }
   prizes?: {
-    firstPlace?: string
-    secondPlace?: string
-    thirdPlace?: string
-    participation?: string
+    firstPlace: string
+    secondPlace: string
+    thirdPlace: string
+    participation: string
   }
   termsAndConditions?: string
   privacyPolicy?: string
@@ -91,6 +106,13 @@ export interface Habit {
   reminder: boolean
   reminderTime?: string
   active: boolean
+  calendarIntegration?: {
+    enabled: boolean
+    eventTitle?: string
+    eventDescription?: string
+    reminderMinutes?: number
+    color?: string
+  }
   createdAt: number
   updatedAt: number
 }
@@ -111,6 +133,67 @@ export interface Enrolment {
     currentStreak: number
     longestStreak: number
   }
+  // New: Health baseline completion tracking
+  healthBaseline?: HealthBaseline
+  beforePhotos?: string[] // storage paths
+  progressPhotos?: string[] // storage paths
+  completionBonuses?: {
+    healthProfile: boolean
+    beforePhotos: boolean
+    progressPhotos: boolean
+  }
+}
+
+// New: Health baseline data structure
+export interface HealthBaseline {
+  // Basic measurements
+  weight?: {
+    value: number
+    unit: 'kg' | 'lbs'
+    date: string
+  }
+  height?: {
+    value: number
+    unit: 'cm' | 'ft' | 'in'
+    date: string
+  }
+  
+  // Body measurements (circumference)
+  bodyMeasurements?: {
+    chest?: number // cm
+    waist?: number // cm
+    hips?: number // cm
+    biceps?: number // cm
+    thighs?: number // cm
+    calves?: number // cm
+    date: string
+  }
+  
+  // Activity & skill levels
+  activityLevel: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active'
+  skillLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+  
+  // Additional health info
+  fitnessGoals?: string[]
+  medicalConditions?: string[]
+  medications?: string[]
+  allergies?: string[]
+  
+  // Metadata
+  completedAt: number
+  updatedAt: number
+}
+
+// New: Invite acceptance tracking
+export interface InviteAcceptance {
+  id: string
+  challengeId: string
+  email: string
+  acceptedAt: number
+  expiresAt: number
+  status: 'pending' | 'accepted' | 'expired'
+  signupCompleted?: boolean
+  userId?: string // Set when user completes signup
 }
 
 export interface Checkin {
@@ -200,6 +283,151 @@ export interface ChallengeTemplate {
   createdBy: string
   createdAt: number
   usageCount: number
+  
+  // New: Marketplace features
+  marketplace: {
+    isPublished: boolean
+    priceCents: number
+    currency: 'USD' | 'AUD'
+    qualityTier: 'free' | 'premium' | 'expert' | 'platinum'
+    category: 'fitness' | 'weight-loss' | 'strength' | 'endurance' | 'wellness' | 'nutrition' | 'mindfulness'
+    difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+    estimatedResults: string[]
+    timeCommitment: 'low' | 'medium' | 'high'
+    equipmentRequired: string[]
+    previewImages?: string[]
+    demoVideo?: string
+    testimonials?: Array<{
+      coachName: string
+      rating: number
+      comment: string
+      date: number
+    }>
+    successMetrics: {
+      averageCompletionRate: number
+      averageParticipantSatisfaction: number
+      averageResults: string
+      totalChallengesCreated: number
+    }
+  }
+  
+  // Template content
+  content: {
+    overview: string
+    weeklyPlans: Array<{
+      week: number
+      title: string
+      description: string
+      focus: string[]
+      workouts: Array<{
+        day: number
+        name: string
+        description: string
+        exercises: Array<{
+          name: string
+          sets: number
+          reps: string
+          rest: string
+          notes?: string
+        }>
+      }>
+    }>
+    nutritionGuidance?: {
+      mealPlans: Array<{
+        week: number
+        focus: string
+        guidelines: string[]
+        sampleMeals: Array<{
+          meal: string
+          description: string
+          macros: {
+            protein: string
+            carbs: string
+            fat: string
+            calories: string
+          }
+        }>
+      }>
+      supplements?: string[]
+      hydration?: string
+    }
+    habitBuilding?: {
+      dailyHabits: string[]
+      weeklyHabits: string[]
+      trackingMethods: string[]
+      motivationTips: string[]
+    }
+    progressTracking?: {
+      metrics: string[]
+      checkpoints: Array<{
+        week: number
+        measurements: string[]
+        photos: boolean
+        assessments: string[]
+      }>
+    }
+  }
+  
+  // Licensing and usage
+  licensing: {
+    type: 'free' | 'single-use' | 'unlimited' | 'subscription'
+    terms: string
+    attributionRequired: boolean
+    modificationAllowed: boolean
+    commercialUse: boolean
+    expirationDate?: number
+  }
+  
+  // Creator information
+  creator: {
+    name: string
+    bio: string
+    credentials: string[]
+    profileImage?: string
+    website?: string
+    socialMedia?: {
+      instagram?: string
+      youtube?: string
+      linkedin?: string
+    }
+  }
+}
+
+// New: Template purchase/download tracking
+export interface TemplatePurchase {
+  id: string
+  templateId: string
+  coachId: string
+  purchaseDate: number
+  priceCents: number
+  currency: 'USD' | 'AUD'
+  status: 'pending' | 'completed' | 'failed' | 'refunded'
+  paymentMethod?: string
+  transactionId?: string
+  downloadCount: number
+  lastDownloaded?: number
+  challengesCreated: number
+}
+
+// New: Template search and filter options
+export interface TemplateFilters {
+  category?: string
+  difficulty?: string
+  qualityTier?: string
+  priceRange?: {
+    min: number
+    max: number
+  }
+  duration?: {
+    min: number
+    max: number
+  }
+  challengeType?: string
+  equipmentRequired?: string[]
+  tags?: string[]
+  creatorId?: string
+  rating?: number
+  freeOnly?: boolean
 }
 
 export interface UserProgress {

@@ -6,13 +6,15 @@ import { getChallenge } from '@/src/lib/challenges'
 import { updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/src/lib/firebase.client'
 import { Challenge } from '@/src/types'
-import { Calendar, Clock, Users, Trophy, Save, ArrowLeft, Target, Zap, Bell, Plus, Trash2, TrendingUp, BarChart3 } from 'lucide-react'
+import { Calendar, Clock, Users, Trophy, Save, ArrowLeft, Target, Zap, Bell, Plus, Trash2, TrendingUp, BarChart3, Download } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/src/components/ui/Button'
 import { Input } from '@/src/components/ui/Input'
 import HabitModal from '@/src/components/HabitModal'
 import CalendarView from '@/src/components/CalendarView'
+import HabitCalendarButton from '@/src/components/HabitCalendarButton'
 import { Habit } from '@/src/types'
+import { HabitCalendarService } from '@/src/lib/habitCalendar'
 
 export default function ChallengeSettingsPage() {
   const params = useParams()
@@ -27,6 +29,7 @@ export default function ChallengeSettingsPage() {
   // Form states
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
+  const [durationDays, setDurationDays] = useState<number>(0)
   const [maxParticipants, setMaxParticipants] = useState<number>(0)
   const [status, setStatus] = useState<'draft' | 'published' | 'archived' | 'completed'>('draft')
   const [priceCents, setPriceCents] = useState<number>(0)
@@ -34,12 +37,24 @@ export default function ChallengeSettingsPage() {
   // Habit management state
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false)
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
+  
+  // Archive validation state
+  const [canArchive, setCanArchive] = useState<boolean>(true)
+  const [archiveWarning, setArchiveWarning] = useState<string>('')
 
   useEffect(() => {
     if (challengeId) {
       loadChallenge()
     }
   }, [challengeId])
+
+  // Auto-calculate end date when duration or start date changes
+  useEffect(() => {
+    if (startDate && durationDays > 0) {
+      const calculatedEndDate = new Date(new Date(startDate).getTime() + (durationDays - 1) * 24 * 60 * 60 * 1000)
+      setEndDate(calculatedEndDate.toISOString().split('T')[0])
+    }
+  }, [startDate, durationDays])
 
   const loadChallenge = async () => {
     try {
@@ -48,6 +63,20 @@ export default function ChallengeSettingsPage() {
       const challengeData = await getChallenge(challengeId)
       
       if (challengeData) {
+        // Ensure habits have calendar integration data
+        if (challengeData.habits) {
+          challengeData.habits = challengeData.habits.map(habit => ({
+            ...habit,
+            calendarIntegration: habit.calendarIntegration || {
+              enabled: false,
+              eventTitle: habit.name,
+              eventDescription: habit.description,
+              reminderMinutes: 15,
+              color: '#3B82F6'
+            }
+          }))
+        }
+        
         setChallenge(challengeData)
         if (challengeData.startDate) {
           setStartDate(challengeData.startDate)
@@ -55,9 +84,13 @@ export default function ChallengeSettingsPage() {
         if (challengeData.endDate) {
           setEndDate(challengeData.endDate)
         }
+        setDurationDays(challengeData.durationDays || 0)
         setMaxParticipants(challengeData.maxParticipants || 0)
         setStatus(challengeData.status)
         setPriceCents(challengeData.priceCents)
+        
+        // Check if challenge can be archived
+        checkArchiveEligibility(challengeData)
       } else {
         setError('Challenge not found')
       }
@@ -68,25 +101,97 @@ export default function ChallengeSettingsPage() {
       setLoading(false)
     }
   }
+  
+  // Check if challenge can be archived (no active participants)
+  const checkArchiveEligibility = (challengeData: Challenge) => {
+    const hasActiveParticipants = challengeData.currentParticipants > 0
+    
+    if (hasActiveParticipants) {
+      setCanArchive(false)
+      setArchiveWarning(`Cannot archive: ${challengeData.currentParticipants} active participant${challengeData.currentParticipants === 1 ? '' : 's'}`)
+    } else {
+      setCanArchive(true)
+      setArchiveWarning('')
+    }
+  }
+  
+  // Handle status changes with validation
+  const handleStatusChange = (newStatus: 'draft' | 'published' | 'archived' | 'completed') => {
+    // Prevent archiving if not allowed
+    if (newStatus === 'archived' && !canArchive) {
+      alert(`Cannot archive this challenge: ${archiveWarning}`)
+      return
+    }
+    
+    // Additional status transition validations
+    if (newStatus === 'archived' && status === 'published') {
+      if (!confirm('Are you sure you want to archive this challenge? This will hide it from new participants.')) {
+        return
+      }
+    }
+    
+    if (newStatus === 'completed' && status === 'published') {
+      if (!confirm('Are you sure you want to mark this challenge as completed? This will end the challenge for all participants.')) {
+        return
+      }
+    }
+    
+    setStatus(newStatus)
+  }
 
   const handleSave = async () => {
     if (!challenge) return
+    
+    // Validate dates
+    if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
+      alert('End date must be after start date')
+      return
+    }
+    
+    if (durationDays < 0 || durationDays > 365) {
+      alert('Duration must be between 1 and 365 days')
+      return
+    }
+    
+    // Prevent archiving challenges with active participants
+    if (status === 'archived' && !canArchive) {
+      alert(`Cannot archive this challenge: ${archiveWarning}`)
+      return
+    }
     
     try {
       setSaving(true)
       const challengeRef = doc(db, 'challenges', challengeId)
       
-      await updateDoc(challengeRef, {
+      // Ensure all fields have proper values (no undefined)
+      const updateData: any = {
         startDate: startDate || null,
         endDate: endDate || null,
-        maxParticipants,
-        status,
-        priceCents,
-        requirements: challenge.requirements,
-        termsAndConditions: challenge.termsAndConditions,
-        privacyPolicy: challenge.privacyPolicy,
+        durationDays: durationDays || null,
+        maxParticipants: maxParticipants || 0,
+        status: status || 'draft',
+        priceCents: priceCents || 0,
         updatedAt: Date.now()
-      })
+      }
+
+      // Only include fields that exist and have values
+      if (challenge.requirements) {
+        updateData.requirements = challenge.requirements
+      }
+      if (challenge.termsAndConditions) {
+        updateData.termsAndConditions = challenge.termsAndConditions
+      }
+      if (challenge.privacyPolicy) {
+        updateData.privacyPolicy = challenge.privacyPolicy
+      }
+      if (challenge.habits) {
+        updateData.habits = challenge.habits
+      }
+
+      // Log the data being sent for debugging
+      console.log('Sending update data to Firebase:', updateData)
+
+      await updateDoc(challengeRef, updateData)
       
       // Reload the challenge to get updated data
       await loadChallenge()
@@ -94,9 +199,39 @@ export default function ChallengeSettingsPage() {
       alert('Challenge settings saved successfully!')
     } catch (error) {
       console.error('Error saving challenge:', error)
-      alert('Failed to save challenge settings')
+      
+      // Provide more specific error messages
+      if (error.code === 'permission-denied') {
+        alert('Permission denied. You may not have access to edit this challenge.')
+      } else if (error.code === 'unavailable') {
+        alert('Firebase service temporarily unavailable. Please try again.')
+      } else if (error.message?.includes('invalid data')) {
+        alert('Invalid data format. Please check your inputs and try again.')
+      } else {
+        alert(`Failed to save challenge settings: ${error.message || 'Unknown error'}`)
+      }
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDurationChange = (newDuration: number) => {
+    setDurationDays(newDuration)
+    
+    // Auto-calculate end date if start date is set
+    if (startDate && newDuration > 0) {
+      const calculatedEndDate = new Date(new Date(startDate).getTime() + (newDuration - 1) * 24 * 60 * 60 * 1000)
+      setEndDate(calculatedEndDate.toISOString().split('T')[0])
+    }
+  }
+
+  const handleStartDateChange = (newStartDate: string) => {
+    setStartDate(newStartDate)
+    
+    // Recalculate end date if duration is set
+    if (newStartDate && durationDays > 0) {
+      const calculatedEndDate = new Date(new Date(newStartDate).getTime() + (durationDays - 1) * 24 * 60 * 60 * 1000)
+      setEndDate(calculatedEndDate.toISOString().split('T')[0])
     }
   }
 
@@ -282,14 +417,41 @@ export default function ChallengeSettingsPage() {
                   </label>
                   <select
                     value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
+                    onChange={(e) => handleStatusChange(e.target.value as any)}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg"
                   >
                     <option value="draft">📝 Draft</option>
                     <option value="published">🚀 Published</option>
-                    <option value="archived">📦 Archived</option>
+                    <option value="archived" disabled={!canArchive}>
+                      📦 Archived {!canArchive ? '(Unavailable)' : ''}
+                    </option>
                     <option value="completed">🏆 Completed</option>
                   </select>
+                  
+                  {/* Archive warning */}
+                  {!canArchive && (
+                    <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-amber-800">
+                        <div className="w-4 h-4 bg-amber-200 rounded-full flex items-center justify-center">
+                          <span className="text-xs">⚠️</span>
+                        </div>
+                        <span className="text-sm font-medium">{archiveWarning}</span>
+                      </div>
+                      <p className="text-xs text-amber-600 mt-1">
+                        Complete or remove all participants before archiving
+                      </p>
+                      
+                      {/* Helpful actions */}
+                      <div className="mt-3 pt-3 border-t border-amber-200">
+                        <p className="text-xs text-amber-700 mb-2">To archive this challenge:</p>
+                        <div className="space-y-1 text-xs text-amber-600">
+                          <p>• Mark as "Completed" to end the challenge for all participants</p>
+                          <p>• Wait for participants to finish their programs</p>
+                          <p>• Or contact participants to remove them from the challenge</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div>
@@ -321,7 +483,7 @@ export default function ChallengeSettingsPage() {
             </div>
             
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Start Date
@@ -329,10 +491,31 @@ export default function ChallengeSettingsPage() {
                   <Input
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
                     className="text-lg"
                   />
                   <p className="text-sm text-gray-500 mt-1">Leave empty for flexible start</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Duration (Days)
+                  </label>
+                  <Input
+                    type="number"
+                    value={durationDays}
+                    onChange={(e) => handleDurationChange(parseInt(e.target.value) || 0)}
+                    min="1"
+                    max="365"
+                    className="text-lg"
+                    placeholder="30"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    How long the challenge runs. Leave empty for open-ended challenges.
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    💡 Tip: Setting duration will auto-calculate the end date from your start date
+                  </p>
                 </div>
                 
                 <div>
@@ -349,17 +532,76 @@ export default function ChallengeSettingsPage() {
                 </div>
               </div>
               
-              {challenge.durationDays && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                  <div className="flex items-center gap-2 text-blue-800">
-                    <Clock className="w-4 h-4" />
-                    <span className="font-medium">Duration: {challenge.durationDays} days</span>
+              {/* Duration Summary */}
+              <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-blue-900">Challenge Duration</h4>
+                      <p className="text-blue-700 text-sm">
+                        {durationDays > 0 ? (
+                          <>
+                            <span className="font-medium">{durationDays} days</span>
+                            {startDate && (
+                              <span> from {new Date(startDate).toLocaleDateString()}</span>
+                            )}
+                          </>
+                        ) : (
+                          'Duration not set'
+                        )}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-blue-700 text-sm mt-1">
-                    This challenge is configured to run for {challenge.durationDays} days from start
-                  </p>
+                  
+                  {/* Quick Duration Presets */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDurationChange(7)}
+                      className="text-xs px-3 py-1"
+                    >
+                      1 Week
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDurationChange(30)}
+                      className="text-xs px-3 py-1"
+                    >
+                      1 Month
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDurationChange(90)}
+                      className="text-xs px-3 py-1"
+                    >
+                      3 Months
+                    </Button>
+                  </div>
                 </div>
-              )}
+                
+                {/* Auto-calculate end date if start date and duration are set */}
+                {startDate && durationDays > 0 && (
+                  <div className="mt-3 p-3 bg-white/60 rounded-lg border border-blue-200/50">
+                    <div className="flex items-center gap-2 text-sm text-blue-800">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        <strong>Auto-calculated end date:</strong> {
+                          new Date(new Date(startDate).getTime() + (durationDays - 1) * 24 * 60 * 60 * 1000).toLocaleDateString()
+                        }
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Tip: You can manually override the end date above if needed
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -482,13 +724,32 @@ export default function ChallengeSettingsPage() {
                         <p className="text-gray-600">Configure daily habits and targets for participants</p>
                       </div>
                     </div>
-                    <Button 
-                      onClick={() => openHabitModal()}
-                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Habit
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      {challenge.habits && challenge.habits.length > 0 && (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            const allEvents = challenge.habits!.flatMap(habit => 
+                              HabitCalendarService.generateHabitCalendar(habit, challenge)
+                            )
+                            if (allEvents.length > 0) {
+                              HabitCalendarService.downloadHabitCalendar(allEvents, `${challenge.name}_all_habits.ics`)
+                            }
+                          }}
+                          className="border-green-200 text-green-600 hover:bg-green-50"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download All Habits
+                        </Button>
+                      )}
+                      <Button 
+                        onClick={() => openHabitModal()}
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Habit
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
@@ -540,6 +801,45 @@ export default function ChallengeSettingsPage() {
                                     {habit.active ? '✅ Active' : '⏸️ Inactive'}
                                   </div>
                                 </div>
+                              </div>
+                              
+                              {/* Calendar Integration */}
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                {/* Debug info - remove this later */}
+                                {process.env.NODE_ENV === 'development' && (
+                                  <div className="mb-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
+                                    Debug: Start: {challenge.startDate}, End: {challenge.endDate}, Duration: {challenge.durationDays} days
+                                    <br />
+                                    Habit Calendar: {habit.calendarIntegration?.enabled ? 'Enabled' : 'Disabled'} 
+                                    {habit.calendarIntegration?.enabled && (
+                                      <> - Title: "{habit.calendarIntegration.eventTitle || 'Default'}"</>
+                                    )}
+                                  </div>
+                                )}
+                                <HabitCalendarButton
+                                  habit={habit}
+                                  challenge={challenge}
+                                  onUpdateHabit={async (updatedHabit) => {
+                                    try {
+                                      // Update local state
+                                      const updatedHabits = (challenge.habits || []).map(h => 
+                                        h.id === updatedHabit.id ? updatedHabit : h
+                                      )
+                                      setChallenge(prev => prev ? { ...prev, habits: updatedHabits } : null)
+                                      
+                                      // Save to Firebase
+                                      const challengeRef = doc(db, 'challenges', challengeId)
+                                      await updateDoc(challengeRef, {
+                                        habits: updatedHabits,
+                                        updatedAt: Date.now()
+                                      })
+                                    } catch (error) {
+                                      console.error('Error updating habit calendar settings:', error)
+                                      alert('Failed to save calendar settings')
+                                    }
+                                  }}
+                                  className="justify-start"
+                                />
                               </div>
                             </div>
                             

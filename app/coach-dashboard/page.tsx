@@ -16,7 +16,8 @@ import {
   Plus,
   Trophy,
   Activity,
-  BarChart3
+  BarChart3,
+  Award
 } from 'lucide-react'
 
 export default function CoachDashboardPage() {
@@ -205,7 +206,7 @@ export default function CoachDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-white/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-4">
@@ -221,6 +222,25 @@ export default function CoachDashboardPage() {
             <Link href="/create-challenge">
               <Button className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
                 Create Challenge
+              </Button>
+            </Link>
+          </div>
+
+          <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-white/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <Award className="w-8 h-8 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Browse Templates</h3>
+                  <p className="text-gray-600">Find professional challenge templates</p>
+                </div>
+              </div>
+            </div>
+            <Link href="/templates">
+              <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                Browse Templates
               </Button>
             </Link>
           </div>
@@ -257,6 +277,19 @@ export default function CoachDashboardPage() {
                 <p className="text-gray-600">Manage and monitor your fitness challenges</p>
               </div>
             </div>
+            
+            {/* Archive Rules Info */}
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs text-white">ℹ️</span>
+                </div>
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium mb-1">Archive Rules:</p>
+                  <p>Challenges can only be archived when they have no active participants. This ensures data integrity and prevents disruption to ongoing fitness journeys.</p>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="p-6">
@@ -285,6 +318,25 @@ export default function CoachDashboardPage() {
                         <div className="text-lg font-bold text-gray-900">${(challenge.priceCents / 100).toFixed(2)}</div>
                         <div className="text-xs text-gray-500">Price</div>
                       </div>
+                    </div>
+                    
+                    {/* Archive Status Indicator */}
+                    <div className="mb-4">
+                      {challenge.currentParticipants > 0 ? (
+                        <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="w-3 h-3 bg-amber-400 rounded-full"></div>
+                          <span className="text-xs text-amber-700 font-medium">
+                            Cannot archive - {challenge.currentParticipants} active participant{challenge.currentParticipants === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                          <span className="text-xs text-green-700 font-medium">
+                            Safe to archive - No active participants
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex gap-2">

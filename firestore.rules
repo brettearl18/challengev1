@@ -21,22 +21,25 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Challenge participants - users can read/write their own data
-    match /challenges/{challengeId}/participants/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Enrolments - users can read/write their own data, coaches can read challenge participants
+    match /enrolments/{enrolmentId} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
       allow read: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        (resource.data.userId == request.auth.uid ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['coach', 'admin']);
     }
 
-    // Check-ins - users can read/write their own data
+    // Check-ins - users can read/write their own data, coaches can read challenge check-ins
     match /checkins/{checkinId} {
       allow read, write: if request.auth != null &&
         resource.data.userId == request.auth.uid;
       allow read: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        (resource.data.userId == request.auth.uid ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['coach', 'admin']);
     }
 
-    // Leaderboards - public read
+    // Leaderboards - public read for published challenges
     match /leaderboards/{challengeId} {
       allow read: if true;
       allow write: if request.auth != null &&

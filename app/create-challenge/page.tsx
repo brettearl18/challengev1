@@ -43,13 +43,28 @@ export default function CreateChallengePage() {
       stepsPoints: 2,
       weightLossPoints: 10,
       consistencyBonus: 5,
-      streakMultiplier: 1.1
+      streakMultiplier: 1.1,
+      // Progressive completion bonuses (1-3% of max points)
+      healthProfileBonus: 2, // 2% bonus
+      beforePhotosBonus: 1.5, // 1.5% bonus
+      progressPhotosBonus: 1 // 1% bonus
     },
     requirements: {
       minAge: 18,
       fitnessLevel: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
       equipment: [] as string[],
-      medicalClearance: false
+      medicalClearance: false,
+      // New: Health baseline requirements
+      requiresHealthBaseline: false,
+      requiresBeforePhotos: false,
+      requiresProgressPhotos: false,
+      healthMetrics: {
+        weight: true,
+        height: true,
+        bodyMeasurements: true,
+        activityLevel: true,
+        skillLevel: true
+      }
     },
     tags: [] as string[],
     termsAndConditions: '',
@@ -113,14 +128,21 @@ export default function CreateChallengePage() {
           stepsPoints: challengeData.scoring.stepsPoints,
           weightLossPoints: challengeData.scoring.weightLossPoints,
           consistencyBonus: challengeData.scoring.consistencyBonus,
-          streakMultiplier: challengeData.scoring.streakMultiplier
+          streakMultiplier: challengeData.scoring.streakMultiplier,
+          healthProfileBonus: challengeData.scoring.healthProfileBonus,
+          beforePhotosBonus: challengeData.scoring.beforePhotosBonus,
+          progressPhotosBonus: challengeData.scoring.progressPhotosBonus
         },
         // Enhanced requirements
         requirements: {
           minAge: challengeData.requirements.minAge,
           fitnessLevel: challengeData.requirements.fitnessLevel,
           equipment: challengeData.requirements.equipment,
-          medicalClearance: challengeData.requirements.medicalClearance
+          medicalClearance: challengeData.requirements.medicalClearance,
+          requiresHealthBaseline: challengeData.requirements.requiresHealthBaseline,
+          requiresBeforePhotos: challengeData.requirements.requiresBeforePhotos,
+          requiresProgressPhotos: challengeData.requirements.requiresProgressPhotos,
+          healthMetrics: challengeData.requirements.healthMetrics
         },
         // Additional fields for future expansion
         tags: challengeData.tags,
@@ -139,9 +161,9 @@ export default function CreateChallengePage() {
 
       const docRef = await addDoc(collection(db, 'challenges'), challengeDoc)
       
-      // Generate invite link
+      // Generate invite link (new invite route)
       const baseUrl = window.location.origin
-      const inviteUrl = `${baseUrl}/join/${docRef.id}`
+      const inviteUrl = `${baseUrl}/invite/${docRef.id}`
       setInviteLink(inviteUrl)
       
       setChallengeCreated(true)

@@ -50,13 +50,28 @@ export default function ChallengeWizardPage() {
       stepsPoints: 2,
       weightLossPoints: 10,
       consistencyBonus: 5,
-      streakMultiplier: 1.1
+      streakMultiplier: 1.1,
+      // Progressive completion bonuses (1-3% of max points)
+      healthProfileBonus: 2, // 2% bonus
+      beforePhotosBonus: 1.5, // 1.5% bonus
+      progressPhotosBonus: 1 // 1% bonus
     },
     requirements: {
       minAge: 18,
       fitnessLevel: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
       equipment: [] as string[],
-      medicalClearance: false
+      medicalClearance: false,
+      // New: Health baseline requirements
+      requiresHealthBaseline: false,
+      requiresBeforePhotos: false,
+      requiresProgressPhotos: false,
+      healthMetrics: {
+        weight: true,
+        height: true,
+        bodyMeasurements: true,
+        activityLevel: true,
+        skillLevel: true
+      }
     },
     tags: [] as string[]
   })
@@ -114,9 +129,9 @@ export default function ChallengeWizardPage() {
 
       setCreatedChallenge(newChallenge)
       
-      // Generate invite link
+      // Generate invite link (new invite route)
       const baseUrl = window.location.origin
-      const inviteUrl = `${baseUrl}/join/${docRef.id}`
+      const inviteUrl = `${baseUrl}/invite/${docRef.id}`
       setInviteLink(inviteUrl)
       
       setChallengeCreated(true)

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/src/componen
 import { Button } from '@/src/components/ui/Button'
 import { Input } from '@/src/components/ui/Input'
 import { Habit } from '@/src/types'
-import { X, Target, Clock, Star, Bell, Plus, Trash2, Save, Zap } from 'lucide-react'
+import { X, Target, Clock, Star, Bell, Plus, Trash2, Save, Zap, Calendar } from 'lucide-react'
 
 interface HabitModalProps {
   isOpen: boolean
@@ -36,7 +36,14 @@ export default function HabitModal({ isOpen, onClose, habit, onSave, onDelete }:
     streakBonus: 5,
     reminder: false,
     reminderTime: '09:00',
-    active: true
+    active: true,
+    calendarIntegration: {
+      enabled: false,
+      eventTitle: '',
+      eventDescription: '',
+      reminderMinutes: 15,
+      color: '#3B82F6'
+    }
   })
 
   useEffect(() => {
@@ -60,7 +67,14 @@ export default function HabitModal({ isOpen, onClose, habit, onSave, onDelete }:
         streakBonus: habit.streakBonus,
         reminder: habit.reminder,
         reminderTime: habit.reminderTime || '09:00',
-        active: habit.active
+        active: habit.active,
+        calendarIntegration: {
+          enabled: habit.calendarIntegration?.enabled || false,
+          eventTitle: habit.calendarIntegration?.eventTitle || habit.name,
+          eventDescription: habit.calendarIntegration?.eventDescription || habit.description,
+          reminderMinutes: habit.calendarIntegration?.reminderMinutes || 15,
+          color: habit.calendarIntegration?.color || '#3B82F6'
+        }
       })
     } else {
       // Reset form for new habit
@@ -84,7 +98,14 @@ export default function HabitModal({ isOpen, onClose, habit, onSave, onDelete }:
         streakBonus: 5,
         reminder: false,
         reminderTime: '09:00',
-        active: true
+        active: true,
+        calendarIntegration: {
+          enabled: false,
+          eventTitle: '',
+          eventDescription: '',
+          reminderMinutes: 15,
+          color: '#3B82F6'
+        }
       })
     }
   }, [habit])
@@ -450,6 +471,87 @@ export default function HabitModal({ isOpen, onClose, habit, onSave, onDelete }:
                   </p>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Calendar Integration Section */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3 pb-3 border-b border-gray-200">
+              <Calendar className="w-6 h-6 text-blue-600" />
+              Calendar Integration
+            </h3>
+            
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900">Sync with Calendar</h4>
+                  <p className="text-gray-600">Add this habit to your phone calendar</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <label className="flex items-center gap-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.calendarIntegration.enabled}
+                    onChange={(e) => handleInputChange('calendarIntegration.enabled', e.target.checked)}
+                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="text-base font-semibold text-gray-700">Add to calendar</span>
+                    <p className="text-sm text-gray-500 mt-1">Create recurring calendar events for this habit</p>
+                  </div>
+                </label>
+                
+                {formData.calendarIntegration.enabled && (
+                  <>
+                    <div className="ml-9 space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Event Title
+                        </label>
+                        <Input
+                          type="text"
+                          value={formData.calendarIntegration.eventTitle}
+                          onChange={(e) => handleInputChange('calendarIntegration.eventTitle', e.target.value)}
+                          className="w-full px-4 py-3 text-base"
+                          placeholder="Title for calendar events"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Event Color
+                        </label>
+                        <div className="flex gap-2">
+                          {['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#6B7280'].map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() => handleInputChange('calendarIntegration.color', color)}
+                              className={`w-8 h-8 rounded-full border-2 ${
+                                formData.calendarIntegration.color === color ? 'border-gray-800' : 'border-gray-300'
+                              }`}
+                              style={{ backgroundColor: color }}
+                              title={`Select ${color}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="p-3 bg-blue-100 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          💡 <strong>Calendar Events:</strong> This habit will create recurring calendar events 
+                          based on its frequency ({formData.frequency}) from the challenge start date to end date.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 

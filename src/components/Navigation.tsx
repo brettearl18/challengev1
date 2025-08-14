@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from './ui/Button'
-import { Menu, X, Trophy, Users, Target, TrendingUp, Settings, LogOut, User, ChevronDown } from 'lucide-react'
+import { Menu, X, Trophy, Users, Target, TrendingUp, Settings, LogOut, User, ChevronDown, Award } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/src/lib/auth'
 
@@ -15,6 +15,7 @@ export default function Navigation() {
 
   const navigation = [
     { name: 'Challenges', href: '/challenges', icon: Trophy },
+    { name: 'Templates', href: '/templates', icon: Award },
     { name: 'Leaderboard', href: '/leaderboard', icon: TrendingUp },
     { name: 'Dashboard', href: '/dashboard', icon: Target, requiresAuth: true },
     { name: 'Progress', href: '/progress', icon: TrendingUp, requiresAuth: true },

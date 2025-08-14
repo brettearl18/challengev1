@@ -8,6 +8,8 @@ import { Button } from '@/src/components/ui/Button'
 import { Input } from '@/src/components/ui/Input'
 import { collection, query, where, getDocs, orderBy, limit, addDoc, doc, getDoc, deleteDoc, updateDoc, increment } from 'firebase/firestore'
 import { db } from '@/src/lib/firebase.client'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { storage } from '@/src/lib/firebase.client'
 import { Challenge, Enrolment, Checkin } from '@/src/types'
 import { useAuth } from '@/src/lib/auth'
 import { 
@@ -39,6 +41,80 @@ export default function CheckinPage() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [populating, setPopulating] = useState(false)
+  const [photos, setPhotos] = useState<{
+    front: File | null
+    back: File | null
+    left: File | null
+    right: File | null
+  }>({
+    front: null,
+    back: null,
+    left: null,
+    right: null
+  })
+  
+  const [photoUrls, setPhotoUrls] = useState<{
+    front: string | null
+    back: string | null
+    left: string | null
+    right: string | null
+  }>({
+    front: null,
+    back: null,
+    left: null,
+    right: null
+  })
+  
+  const [showSummary, setShowSummary] = useState(false)
+  const [summaryData, setSummaryData] = useState<any>(null)
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({})
+  
+  // Function to get full photo URL from reference
+  const getPhotoUrlFromReference = (photoRef: any) => {
+    if (!photoRef || !photoRef.fileName) return null
+    
+    // Reconstruct the Firebase Storage URL
+    const baseUrl = `https://firebasestorage.googleapis.com/v0/b/${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}/o/progress-photos%2F${photoRef.fileName}`
+    return `${baseUrl}?alt=media`
+  }
+  
+  // Function to compress image
+  const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')!
+      const img = new Image()
+      
+      img.onload = () => {
+        // Calculate new dimensions maintaining aspect ratio
+        const ratio = Math.min(maxWidth / img.width, maxWidth / img.height)
+        const newWidth = img.width * ratio
+        const newHeight = img.height * ratio
+        
+        canvas.width = newWidth
+        canvas.height = newHeight
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, newWidth, newHeight)
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            // Create new file with compressed data
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            })
+            resolve(compressedFile)
+          } else {
+            resolve(file) // Fallback to original if compression fails
+          }
+        }, 'image/jpeg', quality)
+      }
+      
+      img.src = URL.createObjectURL(file)
+    })
+  }
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -161,13 +237,162 @@ export default function CheckinPage() {
     }
   }
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, angle: 'front' | 'back' | 'left' | 'right') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      // Compress the image before storing
+      const compressedFile = await compressImage(file, 800, 0.7)
+      
+      console.log(`📸 Image compression: ${angle}`)
+      console.log(`  Original: ${(file.size / 1024 / 1024).toFixed(2)} MB`)
+      console.log(`  Compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`)
+      console.log(`  Reduction: ${((1 - compressedFile.size / file.size) * 100).toFixed(1)}%`)
+      
+      // Store the compressed file for later upload
+      setPhotos(prev => ({
+        ...prev,
+        [angle]: compressedFile
+      }))
+      
+      // Create a preview URL for display
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setPhotoUrls(prev => ({
+          ...prev,
+          [angle]: event.target?.result as string
+        }))
+      }
+      reader.readAsDataURL(compressedFile)
+      
+    } catch (error) {
+      console.error(`❌ Error compressing ${angle} image:`, error)
+      // Fallback to original file
+      setPhotos(prev => ({
+        ...prev,
+        [angle]: file
+      }))
+      
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setPhotoUrls(prev => ({
+          ...prev,
+          [angle]: event.target?.result as string
+        }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removePhoto = (angle: 'front' | 'back' | 'left' | 'right') => {
+    setPhotos(prev => ({
+      ...prev,
+      [angle]: null
+    }))
+    setPhotoUrls(prev => ({
+      ...prev,
+      [angle]: null
+    }))
+  }
+
+  const uploadPhotosToStorage = async (): Promise<string[]> => {
+    const uploadedUrls: string[] = []
+    const anglesToUpload = Object.keys(photos).filter(angle => photos[angle as keyof typeof photos])
+    
+    console.log('📤 Photo upload analysis:')
+    console.log('  - Photos with files:', anglesToUpload)
+    console.log('  - Photos with existing URLs:', Object.keys(photoUrls).filter(angle => photoUrls[angle as keyof typeof photoUrls]))
+    
+    // Check if we need to upload any new photos
+    const newPhotosToUpload = anglesToUpload.filter(angle => !photoUrls[angle as keyof typeof photoUrls])
+    
+    if (newPhotosToUpload.length === 0) {
+      console.log('🔄 All photos already uploaded, reusing existing URLs')
+      return Object.values(photoUrls).filter(url => url) as string[]
+    }
+    
+    setUploadingPhotos(true)
+    setUploadProgress({})
+    
+    try {
+      for (const [angle, file] of Object.entries(photos)) {
+        if (file) {
+          // Check if this photo already has a URL (was previously uploaded)
+          if (photoUrls[angle as keyof typeof photoUrls]) {
+            console.log(`🔄 ${angle} photo already uploaded, reusing URL:`, photoUrls[angle as keyof typeof photoUrls])
+            uploadedUrls.push(photoUrls[angle as keyof typeof photoUrls])
+            continue
+          }
+          
+          // Only upload if no existing URL
+          try {
+            console.log(`📤 Uploading NEW ${angle} photo:`, file.name, file.size)
+            setUploadProgress(prev => ({ ...prev, [angle]: 0 }))
+            
+            const fileName = `${user?.uid}_${Date.now()}_${angle}.jpg`
+            const storageRef = ref(storage, `progress-photos/${fileName}`)
+            
+            // Simulate upload progress (Firebase doesn't provide real progress)
+            const progressInterval = setInterval(() => {
+              setUploadProgress(prev => ({
+                ...prev,
+                [angle]: Math.min(prev[angle] + Math.random() * 20, 90)
+              }))
+            }, 200)
+            
+            await uploadBytes(storageRef, file)
+            clearInterval(progressInterval)
+            setUploadProgress(prev => ({ ...prev, [angle]: 100 }))
+            
+            const downloadURL = await getDownloadURL(storageRef)
+            uploadedUrls.push(downloadURL)
+            console.log(`✅ ${angle} photo uploaded successfully:`, downloadURL)
+            
+            // Small delay to show 100% completion
+            setTimeout(() => {
+              setUploadProgress(prev => {
+                const newProgress = { ...prev }
+                delete newProgress[angle]
+                return newProgress
+              })
+            }, 500)
+            
+          } catch (error) {
+            console.error(`❌ Error uploading ${angle} photo:`, error)
+            setUploadProgress(prev => {
+              const newProgress = { ...prev }
+              delete newProgress[angle]
+              return newProgress
+            })
+          }
+        }
+      }
+    } finally {
+      setUploadingPhotos(false)
+    }
+    
+    console.log('📸 Photo processing complete. Total URLs:', uploadedUrls.length)
+    return uploadedUrls
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user || !selectedEnrolment) return
 
-    setSubmitting(true)
     try {
       const formData = new FormData(e.target as HTMLFormElement)
+      
+      const photoUrls = await uploadPhotosToStorage() // Upload photos to storage and get URLs
+      console.log('📸 Uploaded photo URLs:', photoUrls)
+      
+      // Store only photo references, not full URLs
+      const photoReferences = Object.entries(photoUrls)
+        .filter(([_, url]) => url)
+        .map(([angle, url]) => ({
+          angle,
+          fileName: url.split('/').pop()?.split('?')[0] || `${angle}_${Date.now()}.jpg`
+        }))
       
       const input = {
         userId: user.uid,
@@ -183,21 +408,28 @@ export default function CheckinPage() {
         waterIntake: parseInt(formData.get('waterIntake') as string) || 0,
         meditationMinutes: parseInt(formData.get('meditationMinutes') as string) || 0,
         notes: formData.get('notes') as string || '',
-        photos: [], // Will implement photo upload later
+        photoReferences, // Store lightweight references instead of full URLs
         autoScore: 0 // Will calculate based on challenge scoring
       }
-
+      
+      console.log('📝 Check-in data to save:', input)
+      
       // Calculate points based on challenge scoring
       const selectedEnrolmentData = enrolments.find(e => e.id === selectedEnrolment)
+      console.log('🔍 Challenge scoring config:', selectedEnrolmentData?.challenge?.scoring)
+      
       if (selectedEnrolmentData?.challenge?.scoring) {
         const scoring = selectedEnrolmentData.challenge.scoring
         
         // Base check-in points
         let points = scoring.checkinPoints || 10
+        console.log('📊 Base points:', points)
         
         // Workout bonus
         if (input.workouts > 0) {
-          points += (input.workouts * (scoring.workoutPoints || 5))
+          const workoutBonus = input.workouts * (scoring.workoutPoints || 5)
+          points += workoutBonus
+          console.log('💪 Workout bonus:', workoutBonus, 'Total points:', points)
         }
         
         // Steps bonus
@@ -205,7 +437,9 @@ export default function CheckinPage() {
           const stepsBuckets = scoring.stepsBuckets || [5000, 10000, 15000, 20000]
           for (let i = 0; i < stepsBuckets.length; i++) {
             if (input.steps >= stepsBuckets[i]) {
-              points += 2 * (i + 1) // Fixed points per steps bucket
+              const stepsBonus = 2 * (i + 1)
+              points += stepsBonus
+              console.log('🚶 Steps bonus:', stepsBonus, 'Total points:', points)
               break
             }
           }
@@ -213,42 +447,149 @@ export default function CheckinPage() {
         
         // Nutrition bonus
         if (input.nutritionScore >= 7) {
-          points += scoring.nutritionPoints || 3
+          const nutritionBonus = scoring.nutritionPoints || 3
+          points += nutritionBonus
+          console.log('🥗 Nutrition bonus:', nutritionBonus, 'Total points:', points)
         }
         
         // Wellness bonuses
-        if (input.sleepHours >= 7) points += 2
-        if (input.waterIntake >= 8) points += 2
-        if (input.meditationMinutes >= 10) points += 2
+        if (input.sleepHours >= 7) {
+          points += 2
+          console.log('😴 Sleep bonus: +2, Total points:', points)
+        }
+        if (input.waterIntake >= 8) {
+          points += 2
+          console.log('💧 Water bonus: +2, Total points:', points)
+        }
+        if (input.meditationMinutes >= 5) {
+          points += 2
+          console.log('🧘 Meditation bonus: +2, Total points:', points)
+        }
         
         input.autoScore = points
+        console.log('🎯 Final calculated points:', input.autoScore)
+      } else {
+        console.log('⚠️ No challenge scoring config found, using default scoring')
+        
+        // Default scoring system when challenge doesn't have scoring rules
+        let points = 10 // Base check-in points
+        
+        // Workout bonus
+        if (input.workouts > 0) {
+          points += (input.workouts * 5)
+          console.log('💪 Default workout bonus:', input.workouts * 5, 'Total points:', points)
+        }
+        
+        // Steps bonus
+        if (input.steps > 0) {
+          if (input.steps >= 20000) points += 8
+          else if (input.steps >= 15000) points += 6
+          else if (input.steps >= 10000) points += 4
+          else if (input.steps >= 5000) points += 2
+          console.log('🚶 Default steps bonus for', input.steps, 'steps. Total points:', points)
+        }
+        
+        // Nutrition bonus
+        if (input.nutritionScore >= 7) {
+          points += 3
+          console.log('🥗 Default nutrition bonus: +3, Total points:', points)
+        }
+        
+        // Wellness bonuses
+        if (input.sleepHours >= 7) {
+          points += 2
+          console.log('😴 Default sleep bonus: +2, Total points:', points)
+        }
+        if (input.waterIntake >= 8) {
+          points += 2
+          console.log('💧 Default water bonus: +2, Total points:', points)
+        }
+        if (input.meditationMinutes >= 10) {
+          points += 2
+          console.log('🧘 Default meditation bonus: +2, Total points:', points)
+        }
+        
+        input.autoScore = points
+        console.log('🎯 Final calculated points (default scoring):', input.autoScore)
       }
+      
+      // Show summary modal instead of submitting directly
+      setSummaryData({
+        ...input,
+        challenge: selectedEnrolmentData?.challenge,
+        points: input.autoScore,
+        photoUrls: photoUrls // Pass the actual photo URLs for display
+      })
+      setShowSummary(true)
+      
+    } catch (error) {
+      console.error('Error preparing check-in summary:', error)
+      alert('Error preparing check-in. Please try again.')
+    }
+  }
 
-      console.log('Submitting check-in with data:', input)
+  const handleConfirmSubmit = async () => {
+    if (!summaryData) return
+    
+    setSubmitting(true)
+    try {
+      console.log('Submitting check-in with data:', summaryData)
       console.log('Points calculation breakdown:', {
-        base: input.autoScore,
-        workouts: input.workouts,
-        steps: input.steps,
-        nutrition: input.nutritionScore
+        base: summaryData.autoScore,
+        workouts: summaryData.workouts,
+        steps: summaryData.steps,
+        nutrition: summaryData.nutritionScore
       })
 
-      await addDoc(collection(db, 'checkins'), input)
+      await addDoc(collection(db, 'checkins'), summaryData)
       
       // Update enrolment stats
-      const enrolmentRef = doc(db, 'enrolments', selectedEnrolment)
-      await updateDoc(enrolmentRef, {
-        totalScore: increment(input.autoScore),
-        checkinCount: increment(1),
-        lastCheckinDate: new Date()
-      })
+      const enrolmentRef = doc(db, 'enrolments', summaryData.enrolmentId)
+      
+      // Get current enrolment data first
+      const currentEnrolment = await getDoc(enrolmentRef)
+      if (currentEnrolment.exists()) {
+        const currentData = currentEnrolment.data()
+        const newTotalScore = (currentData.totalScore || 0) + summaryData.autoScore
+        const newCheckinCount = (currentData.checkinCount || 0) + 1
+        
+        await updateDoc(enrolmentRef, {
+          totalScore: newTotalScore,
+          checkinCount: newCheckinCount,
+          lastCheckinDate: new Date()
+        })
+        
+        console.log('✅ Enrolment updated successfully:', {
+          oldTotalScore: currentData.totalScore || 0,
+          newTotalScore,
+          oldCheckinCount: currentData.checkinCount || 0,
+          newCheckinCount
+        })
+      } else {
+        console.error('❌ Enrolment document not found:', summaryData.enrolmentId)
+        throw new Error('Enrolment not found')
+      }
 
       setSuccess(true)
       setSelectedEnrolment('')
+      setShowSummary(false)
+      setSummaryData(null)
+      
+      // Clear photo state after successful submission
+      setPhotos({ front: null, back: null, left: null, right: null })
+      setPhotoUrls({ front: null, back: null, left: null, right: null })
       
       // Refresh enrolments to show updated stats
       await fetchEnrolments()
     } catch (error) {
       console.error('Error submitting check-in:', error)
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      })
+      console.error('Summary data that failed:', summaryData)
+      alert(`Error submitting check-in: ${error.message}. Please try again.`)
     } finally {
       setSubmitting(false)
     }
@@ -281,27 +622,54 @@ export default function CheckinPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-green-600 via-blue-600 to-purple-600">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative container mx-auto px-4 py-16">
-          <div className="max-w-7xl mx-auto text-center">
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-bold shadow-lg mb-6">
-              <CheckCircle className="w-5 h-5" />
-              Daily Progress
+      {/* Modern Header - Matching Dashboard */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Fitness Challenge</h1>
+                <p className="text-sm text-gray-600">Welcome back, {profile?.displayName || 'Champion'}</p>
+              </div>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-              Daily Check-in 🎯
-            </h1>
-            <p className="text-xl md:text-2xl text-green-100 leading-relaxed max-w-4xl mx-auto">
-              Log your daily fitness activities, track your progress, and earn points to climb the leaderboard!
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                {profile?.role === 'coach' ? 'Coach' : profile?.role === 'admin' ? 'Admin' : 'Participant'}
+              </div>
+              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-semibold text-sm">
+                  {(profile?.displayName || 'U').charAt(0).toUpperCase()}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8">
+        {/* Hero Section - Updated to Match Dashboard Green Style */}
+        <div className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 rounded-3xl p-8 mb-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium mb-4">
+              <CheckCircle className="w-4 h-4" />
+              Daily Progress
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Daily Check-in 🎯
+            </h2>
+            <p className="text-lg text-green-100 max-w-2xl mx-auto">
+              Log your daily fitness activities, track your progress, and earn points to climb the leaderboard!
+            </p>
+          </div>
+        </div>
+
         {/* Success Message */}
         {success && (
           <div className="mb-8 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-3xl p-6 shadow-lg">
@@ -452,32 +820,37 @@ export default function CheckinPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Workouts Completed
+                      Did you complete any workouts today?
                     </label>
-                    <Input
-                      type="number"
+                    <select
                       name="workouts"
-                      min="0"
-                      max="10"
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg font-medium"
-                      placeholder="0"
-                    />
+                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg font-medium bg-white"
+                      defaultValue="0"
+                    >
+                      <option value="0">No workouts today</option>
+                      <option value="1">1 workout</option>
+                      <option value="2">2 workouts</option>
+                      <option value="3">3+ workouts</option>
+                    </select>
                     <p className="text-sm text-blue-600 mt-1">Each workout earns bonus points!</p>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Steps Today
+                      How many steps did you do today?
                     </label>
-                    <Input
-                      type="number"
+                    <select
                       name="steps"
-                      min="0"
-                      max="50000"
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg font-medium"
-                      placeholder="0"
-                    />
-                    <p className="text-sm text-blue-600 mt-1">Hit step goals for bonus points!</p>
+                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg font-medium bg-white"
+                      defaultValue="0"
+                    >
+                      <option value="0">Less than 5,000</option>
+                      <option value="5000">5,000 - 9,999</option>
+                      <option value="10000">10,000 - 14,999</option>
+                      <option value="15000">15,000 - 19,999</option>
+                      <option value="20000">20,000+ steps</option>
+                    </select>
+                    <p className="text-sm text-blue-600 mt-1">Higher step counts earn more points!</p>
                   </div>
                 </div>
               </div>
@@ -494,17 +867,25 @@ export default function CheckinPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Nutrition Score (1-10)
+                      How would you rate your nutrition today?
                     </label>
-                    <Input
-                      type="number"
+                    <select
                       name="nutritionScore"
-                      min="1"
-                      max="10"
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 text-lg font-medium"
-                      placeholder="7"
-                    />
-                    <p className="text-sm text-green-600 mt-1">Rate your nutrition today</p>
+                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 text-lg font-medium bg-white"
+                      defaultValue="5"
+                    >
+                      <option value="1">1 - Poor (junk food, skipped meals)</option>
+                      <option value="2">2 - Below average</option>
+                      <option value="3">3 - Fair</option>
+                      <option value="4">4 - Below average</option>
+                      <option value="5">5 - Average (mixed day)</option>
+                      <option value="6">6 - Above average</option>
+                      <option value="7">7 - Good (mostly healthy)</option>
+                      <option value="8">8 - Very good</option>
+                      <option value="9">9 - Excellent</option>
+                      <option value="10">10 - Perfect (ideal nutrition day)</option>
+                    </select>
+                    <p className="text-sm text-green-600 mt-1">Be honest - this helps track your progress!</p>
                   </div>
                   
                   <div>
@@ -537,48 +918,57 @@ export default function CheckinPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Sleep Hours
+                      How many hours did you sleep?
                     </label>
-                    <Input
-                      type="number"
+                    <select
                       name="sleepHours"
-                      min="0"
-                      max="24"
-                      step="0.5"
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 text-lg font-medium"
-                      placeholder="7.5"
-                    />
-                    <p className="text-sm text-purple-600 mt-1">Aim for 7-9 hours</p>
+                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 text-lg font-medium bg-white"
+                      defaultValue="7"
+                    >
+                      <option value="0">Less than 4 hours</option>
+                      <option value="4">4-5 hours</option>
+                      <option value="5">5-6 hours</option>
+                      <option value="6">6-7 hours</option>
+                      <option value="7">7-8 hours</option>
+                      <option value="8">8-9 hours</option>
+                      <option value="9">9+ hours</option>
+                    </select>
+                    <p className="text-sm text-purple-600 mt-1">Aim for 7-9 hours for optimal health</p>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Water Intake (glasses)
+                      How many glasses of water did you drink?
                     </label>
-                    <Input
-                      type="number"
+                    <select
                       name="waterIntake"
-                      min="0"
-                      max="20"
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 text-lg font-medium"
-                      placeholder="8"
-                    />
-                    <p className="text-sm text-purple-600 mt-1">Aim for 8+ glasses</p>
+                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 text-lg font-medium bg-white"
+                      defaultValue="6"
+                    >
+                      <option value="0">0-2 glasses</option>
+                      <option value="3">3-4 glasses</option>
+                      <option value="5">5-6 glasses</option>
+                      <option value="7">7-8 glasses</option>
+                      <option value="8">8+ glasses</option>
+                    </select>
+                    <p className="text-sm text-purple-600 mt-1">Aim for 8+ glasses daily</p>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Meditation (minutes)
+                      Did you meditate today?
                     </label>
-                    <Input
-                      type="number"
+                    <select
                       name="meditationMinutes"
-                      min="0"
-                      max="120"
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 text-lg font-medium"
-                      placeholder="10"
-                    />
-                    <p className="text-sm text-purple-600 mt-1">Any meditation counts!</p>
+                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 text-lg font-medium bg-white"
+                      defaultValue="0"
+                    >
+                      <option value="0">No meditation</option>
+                      <option value="5">5-10 minutes</option>
+                      <option value="15">15-20 minutes</option>
+                      <option value="30">30+ minutes</option>
+                    </select>
+                    <p className="text-sm text-purple-600 mt-1">Any meditation counts towards wellness!</p>
                   </div>
                 </div>
               </div>
@@ -606,7 +996,7 @@ export default function CheckinPage() {
                 </div>
               </div>
 
-              {/* Progress Photos */}
+              {/* Progress Photos - 4 Angle System */}
               <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-6 rounded-2xl border border-indigo-100">
                 <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 mb-4">
                   <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center">
@@ -615,39 +1005,248 @@ export default function CheckinPage() {
                   Progress Photos
                 </h3>
                 
-                <div className="border-2 border-dashed border-indigo-300 rounded-2xl p-8 text-center bg-white/50">
-                  <Camera className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">Upload progress photos (optional)</p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white border-0 hover:from-indigo-700 hover:to-blue-700"
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Choose File
-                  </Button>
-                  <p className="text-sm text-gray-500 mt-2">Max 4 photos, 5MB each</p>
+                <p className="text-sm text-indigo-600 mb-4">Upload photos from 4 different angles to track your transformation</p>
+                
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    💡 <strong>Progress Tracking:</strong> These photos will automatically appear in your Progress page timeline, 
+                    where you can pin important milestones to your transformation gallery.
+                  </p>
                 </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Front View */}
+                  <div className="bg-white rounded-xl p-4 border-2 border-dashed border-indigo-200 hover:border-indigo-400 transition-colors">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Camera className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-2">Front View</h4>
+                      <p className="text-sm text-gray-600 mb-3">Stand straight, arms at sides</p>
+                      <input
+                        type="file"
+                        name="frontPhoto"
+                        accept="image/*"
+                        className="hidden"
+                        id="frontPhoto"
+                        onChange={(e) => handlePhotoUpload(e, 'front')}
+                      />
+                      <label
+                        htmlFor="frontPhoto"
+                        className="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        {photos.front ? 'Change Photo' : 'Upload Photo'}
+                      </label>
+                                              {photoUrls.front && (
+                          <div className="mt-3">
+                            <img 
+                              src={photoUrls.front} 
+                              alt="Front view" 
+                              className="w-full h-24 object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removePhoto('front')}
+                              className="mt-2 text-sm text-red-600 hover:text-red-800"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Upload Progress Indicator */}
+                        {uploadProgress.front !== undefined && (
+                          <div className="mt-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                              <span className="text-sm text-indigo-600">Uploading...</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${uploadProgress.front}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-xs text-gray-600">{Math.round(uploadProgress.front)}%</span>
+                          </div>
+                        )}
+                    </div>
+                  </div>
+
+                  {/* Back View */}
+                  <div className="bg-white rounded-xl p-4 border-2 border-dashed border-indigo-200 hover:border-indigo-400 transition-colors">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Camera className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-2">Back View</h4>
+                      <p className="text-sm text-gray-600 mb-3">Stand straight, back to camera</p>
+                      <input
+                        type="file"
+                        name="backPhoto"
+                        accept="image/*"
+                        className="hidden"
+                        id="backPhoto"
+                        onChange={(e) => handlePhotoUpload(e, 'back')}
+                      />
+                      <label
+                        htmlFor="backPhoto"
+                        className="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        {photos.back ? 'Change Photo' : 'Upload Photo'}
+                      </label>
+                      {photoUrls.back && (
+                        <div className="mt-3">
+                          <img 
+                            src={photoUrls.back} 
+                            alt="Back view" 
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto('back')}
+                            className="mt-2 text-sm text-red-600 hover:text-red-800"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Left Side */}
+                  <div className="bg-white rounded-xl p-4 border-2 border-dashed border-indigo-200 hover:border-indigo-400 transition-colors">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Camera className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-2">Left Side</h4>
+                      <p className="text-sm text-gray-600 mb-3">Profile view from left</p>
+                      <input
+                        type="file"
+                        name="leftPhoto"
+                        accept="image/*"
+                        className="hidden"
+                        id="leftPhoto"
+                        onChange={(e) => handlePhotoUpload(e, 'left')}
+                      />
+                      <label
+                        htmlFor="leftPhoto"
+                        className="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        {photos.left ? 'Change Photo' : 'Upload Photo'}
+                      </label>
+                      {photoUrls.left && (
+                        <div className="mt-3">
+                          <img 
+                            src={photoUrls.left} 
+                            alt="Left side view" 
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto('left')}
+                            className="mt-2 text-sm text-red-600 hover:text-red-800"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Side */}
+                  <div className="bg-white rounded-xl p-4 border-2 border-dashed border-indigo-200 hover:border-indigo-400 transition-colors">
+                    <div className="text-center">
+                                              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Camera className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-2">Right Side</h4>
+                      <p className="text-sm text-gray-600 mb-3">Profile view from right</p>
+                      <input
+                        type="file"
+                        name="rightPhoto"
+                        accept="image/*"
+                        className="hidden"
+                        id="rightPhoto"
+                        onChange={(e) => handlePhotoUpload(e, 'right')}
+                      />
+                      <label
+                        htmlFor="rightPhoto"
+                        className="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        {photos.right ? 'Change Photo' : 'Upload Photo'}
+                      </label>
+                      {photoUrls.right && (
+                        <div className="mt-3">
+                          <img 
+                            src={photoUrls.right} 
+                            alt="Right side view" 
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto('right')}
+                            className="mt-2 text-sm text-red-600 hover:text-red-800"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                                  <div className="mt-4 p-3 bg-indigo-100 rounded-lg">
+                    <p className="text-sm text-indigo-800 text-center">
+                      💡 <strong>Photo Tips:</strong> Wear fitted clothing, stand in good lighting, and maintain consistent poses for accurate progress tracking.
+                    </p>
+                    <p className="text-sm text-indigo-700 text-center mt-2">
+                      📸 <strong>Auto-compression:</strong> Large images are automatically compressed to 800px width for optimal storage and performance.
+                    </p>
+                  </div>
               </div>
 
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-4 px-8 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Submit Check-in
-                  </>
+                              {/* Upload Status */}
+                {uploadingPhotos && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-800">Uploading Photos...</p>
+                        <p className="text-xs text-blue-600">Please wait while your photos are being uploaded</p>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </Button>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={submitting || uploadingPhotos}
+                  className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-4 px-8 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Submitting...
+                    </>
+                  ) : uploadingPhotos ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Uploading Photos...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Review & Submit
+                    </>
+                  )}
+                </Button>
             </form>
           </div>
         )}
@@ -698,6 +1297,125 @@ export default function CheckinPage() {
                   </div>
                   <div className="text-sm text-gray-600">Good Nutrition (7+)</div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Check-in Summary Modal */}
+        {showSummary && summaryData && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-3xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Review Your Check-in</h2>
+                <p className="text-gray-600">Please review your information before submitting</p>
+              </div>
+
+              {/* Challenge Info */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 mb-6">
+                <h3 className="font-semibold text-gray-900 mb-2">Challenge</h3>
+                <p className="text-gray-700">{summaryData.challenge?.name || 'Unknown Challenge'}</p>
+                <p className="text-sm text-gray-600">{summaryData.challenge?.description || 'No description'}</p>
+              </div>
+
+              {/* Metrics Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-gray-900">{summaryData.workouts}</div>
+                  <div className="text-sm text-gray-600">Workouts</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-gray-900">{summaryData.steps.toLocaleString()}</div>
+                  <div className="text-sm text-gray-600">Steps</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-gray-900">{summaryData.nutritionScore}/10</div>
+                  <div className="text-sm text-gray-600">Nutrition</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-gray-900">{summaryData.weightKg} kg</div>
+                  <div className="text-sm text-gray-600">Weight</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-gray-900">{summaryData.sleepHours}h</div>
+                  <div className="text-sm text-gray-600">Sleep</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-gray-900">{summaryData.waterIntake} cups</div>
+                  <div className="text-sm text-gray-600">Water</div>
+                </div>
+              </div>
+
+                             {/* Photo Preview */}
+               {summaryData.photoUrls && Object.keys(summaryData.photoUrls).filter(angle => summaryData.photoUrls[angle]).length > 0 && (
+                 <div className="mb-6">
+                   <h3 className="font-semibold text-gray-900 mb-3">Progress Photos</h3>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                     {Object.entries(summaryData.photoUrls).map(([angle, photoUrl], index) => {
+                       if (!photoUrl) return null
+                       
+                       const angleNames = ['Front', 'Back', 'Left Side', 'Right Side']
+                       return (
+                         <div key={angle} className="relative">
+                           <img 
+                             src={photoUrl as string} 
+                             alt={`${angle} view`}
+                             className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                           />
+                           <div className="absolute top-1 left-1 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                             {angleNames[index]}
+                           </div>
+                         </div>
+                       )
+                     })}
+                   </div>
+                 </div>
+               )}
+
+              {/* Notes */}
+              {summaryData.notes && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-2">Notes</h3>
+                  <p className="text-gray-700 bg-gray-50 rounded-lg p-3">{summaryData.notes}</p>
+                </div>
+              )}
+
+              {/* Points Summary */}
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-4 mb-6 text-center">
+                <h3 className="font-semibold text-gray-900 mb-2">Points Earned</h3>
+                <div className="text-3xl font-bold text-green-600">{summaryData.points}</div>
+                <p className="text-sm text-gray-600">Total points for this check-in</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowSummary(false)}
+                  variant="outline"
+                  className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Edit Check-in
+                </Button>
+                <Button
+                  onClick={handleConfirmSubmit}
+                  disabled={submitting}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white"
+                >
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Confirm & Submit
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </div>

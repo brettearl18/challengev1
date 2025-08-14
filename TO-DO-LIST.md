@@ -1,6 +1,6 @@
 # 🚀 FITNESS CHALLENGE PLATFORM - TO-DO LIST
 
-## 📊 **OVERALL PROGRESS: 98% COMPLETE**
+## 📊 **OVERALL PROGRESS: 99% COMPLETE**
 
 ---
 
@@ -19,6 +19,7 @@
 
 ### **🔧 COACH SIDE IMPROVEMENTS:**
 - [x] **🎨 HabitModal UI/UX Overhaul** - **Complete redesign with responsive layout, proper spacing, and professional appearance** ✅
+- [x] **📅 Habit Calendar Integration** - **Add/Remove habits to calendar with custom settings and iCal export** ✅
 - [ ] Add bulk challenge operations (duplicate, archive multiple)
 - [ ] Enhanced challenge analytics dashboard
 - [ ] Coach profile management
@@ -43,6 +44,8 @@
 - [x] **Design System** - **Modern, consistent UI across all pages**
 - [x] **Check-in Form** - **Complete with photo uploads and validation**
 - [x] **Image Upload System** - **Firebase Storage fully working with CORS fixed**
+- [x] **📸 Progress Photos System** - **4-angle photo upload (front, back, left, right) with structured prompts** ✅
+- [x] **📅 Habit Calendar Integration** - **Add/Remove habits to calendar with custom settings and iCal export** ✅
 
 ### **❌ MISSING CRITICAL FEATURES:**
 - [x] **EnrolmentService** - Allow users to join challenges ✅
@@ -54,6 +57,8 @@
 - [ ] **Progress Sharing** - Social features for participants
 
 ### **🔧 CLIENT SIDE IMPROVEMENTS:**
+- [x] **🎨 Progress History Page Redesign** - **Updated hero banner and stats cards to match modern dashboard design** ✅
+- [x] **🎨 Daily Check-in Page Redesign** - **Added modern header and updated hero to match dashboard green style** ✅
 - [ ] Enhanced progress visualization
 - [ ] Social features (friends, teams)
 - [ ] Achievement sharing
